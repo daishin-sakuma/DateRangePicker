@@ -6,6 +6,7 @@
   --color-text: light-dark(#1e1e1e, #fafafa);
   --color-text-muted: light-dark(#000000af, #ffffffa6);
   --color-fill: light-dark(#0000000d, #ffffff12);
+  --color-fill-strong: light-dark(#0000001f, #ffffff29);
   --color-border: light-dark(#0000001a, #ffffff1f);
   --color-ring-soft: light-dark(#00000030, #ffffff38);
   --shadow-xs: 0 1px 2px light-dark(#0000000d, #0000004d);
@@ -49,9 +50,8 @@ body {
 .settings {
   display: flex;
   flex-direction: column;
-  gap: 20px;
   width: 280px;
-  padding: 20px;
+  padding: 4px 20px;
   font-size: 14px;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -59,9 +59,36 @@ body {
   box-shadow: var(--shadow-xs);
 }
 
+.settings__header,
+.settings__group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings__header {
+  padding: 14px 0;
+}
+
 .settings__title {
   font-size: 15px;
   font-weight: 600;
+}
+
+.settings__group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 0 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.settings__group-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }
 
 .settings__field {
@@ -77,7 +104,20 @@ body {
   justify-content: space-between;
   font-size: 13px;
   font-weight: 500;
+}
+
+.settings__label output {
+  font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
+}
+
+.settings__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  cursor: pointer;
 }
 
 /* A legend is not a flex item, so it doesn't get the field's gap. */
@@ -164,16 +204,26 @@ legend.settings__label {
 .code {
   padding: 10px 12px;
   overflow-x: auto;
-  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: var(--color-text);
   background-color: var(--color-fill);
   border-radius: 8px;
   user-select: text;
 }
 
-.copy-button {
-  padding: 0 6px;
+/* <code> otherwise falls back to the browser's generic monospace font. */
+.code code {
   font: inherit;
+}
+
+/* Text button (Reset, Copy) */
+
+.text-button {
+  margin-right: -6px;
+  padding: 2px 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--color-text);
   background: none;
   border: none;
@@ -181,13 +231,79 @@ legend.settings__label {
   cursor: pointer;
 }
 
-.copy-button:hover {
+.text-button:hover {
   background-color: var(--color-fill);
 }
 
-.copy-button:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--color-ring-soft);
+/* Icon button (Copy) */
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -6px -6px -6px 0;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.icon-button:hover {
+  color: var(--color-text);
+  background-color: var(--color-fill);
+}
+
+.icon-button svg {
+  grid-area: 1 / 1;
+  width: 16px;
+  height: 16px;
+}
+
+.icon-button__check,
+.icon-button.is-copied .icon-button__copy {
+  display: none;
+}
+
+.icon-button.is-copied .icon-button__check {
+  display: block;
+}
+
+/* Switch */
+
+.switch {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background-color: var(--color-fill-strong);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+  transition: transform 0.15s ease;
+}
+
+.switch:checked {
+  background-color: var(--color-text);
+}
+
+.switch:checked::before {
+  transform: translateX(14px);
 }
 
 /* Slider */
@@ -196,6 +312,20 @@ legend.settings__label {
   width: 100%;
   accent-color: var(--color-text);
   cursor: pointer;
+}
+
+/* Focus ring shared by the custom controls */
+
+.text-button:focus-visible,
+.icon-button:focus-visible,
+.switch:focus-visible,
+.slider:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-ring-soft);
+}
+
+.slider:focus-visible {
+  border-radius: 999px;
 }
 
 @media (max-width: 700px) {

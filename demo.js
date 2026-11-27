@@ -1,6 +1,6 @@
 const form = document.querySelector('.settings');
 const code = form.querySelector('.code code');
-const copyButton = form.querySelector('.copy-button');
+const copyButton = form.querySelector('[data-copy]');
 
 const readSettings = () => {
   const { elements } = form;
@@ -8,12 +8,13 @@ const readSettings = () => {
   return {
     accentColor: accent === 'custom' ? elements.customColor.value : accent || null,
     openOnHover: elements.openOnHover.value === 'true',
-    closeOnLeave: elements.closeOnLeave.value === 'true',
-    autoClose: elements.autoClose.value === 'true',
+    closeOnLeave: elements.closeOnLeave.checked,
+    autoClose: elements.autoClose.checked,
     months: Number(elements.months.value),
     weekStartsOn: Number(elements.weekStartsOn.value),
     radius: Number(elements.radius.value),
-    theme: elements.theme.value
+    theme: elements.theme.value,
+    showIcon: elements.showIcon.checked
   };
 };
 
@@ -29,7 +30,8 @@ const toSnippet = (settings) => {
 
 const applySettings = () => {
   const settings = readSettings();
-  form.elements.radiusValue.value = `${settings.radius}px`;
+  const { radius } = form.elements;
+  form.elements.radiusValue.value = radius.value === radius.max ? 'Full' : `${radius.value}px`;
   // The demo page follows the picker's theme so the preview matches.
   document.documentElement.style.colorScheme = settings.theme === 'auto' ? '' : settings.theme;
   code.textContent = toSnippet(settings);
@@ -47,15 +49,25 @@ form.addEventListener('input', (e) => {
   picker.setOptions(applySettings());
 });
 
+// The reset event fires before the fields change, so apply the defaults on the next tick.
+form.addEventListener('reset', () => setTimeout(() => picker.setOptions(applySettings())));
+
+let copiedTimer = null;
+
 copyButton.addEventListener('click', async () => {
   try {
     await navigator.clipboard.writeText(code.textContent);
-    copyButton.textContent = 'Copied';
   } catch {
-    getSelection().selectAllChildren(code);
-    copyButton.textContent = 'Selected';
+    getSelection().selectAllChildren(code); // Fall back to letting the user copy the selection.
+    return;
   }
-  setTimeout(() => (copyButton.textContent = 'Copy'), 1500);
+  clearTimeout(copiedTimer);
+  copyButton.classList.add('is-copied');
+  copyButton.ariaLabel = 'Copied';
+  copiedTimer = setTimeout(() => {
+    copyButton.classList.remove('is-copied');
+    copyButton.ariaLabel = 'Copy code';
+  }, 1500);
 });
 
 // Keep the calendar open while adjusting settings so changes are visible right away.

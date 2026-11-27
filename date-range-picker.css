@@ -99,6 +99,11 @@
   flex-shrink: 0;
 }
 
+.month__nav svg {
+  width: 20px;
+  height: 20px;
+}
+
 .picker__chevron {
   margin-left: auto;
   color: var(--color-text-muted);

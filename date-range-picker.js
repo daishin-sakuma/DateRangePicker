@@ -13,8 +13,9 @@ const createDateRangePicker = (() => {
     closeOnLeave: false, // Close the dropdown when the mouse leaves the trigger and calendar.
     months: 2,           // Months shown side by side: 1 or 2.
     weekStartsOn: 0,     // 0 = Sunday, 1 = Monday.
-    radius: 8,           // Corner radius in px.
+    radius: 8,           // Corner radius in px; 20+ makes days fully round.
     theme: 'auto',       // 'auto' follows the OS setting; 'light' or 'dark' pins it.
+    showIcon: true,      // Show the calendar icon at the left of the trigger.
     onChange: () => {}
   };
 
@@ -22,14 +23,22 @@ const createDateRangePicker = (() => {
   const AUTO_CLOSE_MS = 250;
   const LEAVE_CLOSE_MS = 200; // Lets the mouse cross the gap between trigger and calendar.
 
-  const NAV = {
-    [-1]: { label: 'Previous month', points: '15 18 9 12 15 6' },
-    [1]: { label: 'Next month', points: '9 18 15 12 9 6' }
+  // Heroicons (outline, 24px): https://heroicons.com
+  const icon = (path, className = '') =>
+    `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="${path}"/></svg>`;
+
+  const ICONS = {
+    calendar: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5',
+    chevronDown: 'm19.5 8.25-7.5 7.5-7.5-7.5',
+    chevronLeft: 'M15.75 19.5 8.25 12l7.5-7.5',
+    chevronRight: 'm8.25 4.5 7.5 7.5-7.5 7.5'
   };
 
-  const ICON_ATTRS = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
-  const CALENDAR_ICON = `<svg ${ICON_ATTRS} stroke-width="2"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>`;
-  const CHEVRON_ICON = `<svg class="picker__chevron" ${ICON_ATTRS} stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>`;
+  const NAV = {
+    [-1]: { label: 'Previous month', icon: ICONS.chevronLeft },
+    [1]: { label: 'Next month', icon: ICONS.chevronRight }
+  };
+
 
   // ---------------------------------------------------------------------------
   // Dates
@@ -109,7 +118,8 @@ const createDateRangePicker = (() => {
     let openedByHover = false;
 
     const trigger = h('button', 'picker__trigger', { type: 'button', ariaHasPopup: 'dialog', ariaExpanded: 'false' });
-    trigger.innerHTML = `${CALENDAR_ICON}<span class="picker__value"></span>${CHEVRON_ICON}`;
+    trigger.innerHTML = `${icon(ICONS.calendar, 'picker__icon')}<span class="picker__value"></span>${icon(ICONS.chevronDown, 'picker__chevron')}`;
+    const triggerIcon = trigger.querySelector('.picker__icon');
     const valueText = trigger.querySelector('.picker__value');
     const panel = h('div', 'picker__panel', { role: 'dialog', ariaLabel: 'Calendar' });
     root.classList.add('picker');
@@ -132,12 +142,12 @@ const createDateRangePicker = (() => {
     // -------------------------------------------------------------------------
 
     const createNavButton = (step) => {
-      const { label, points } = NAV[step];
+      const { label, icon: path } = NAV[step];
       const button = h('button', 'month__nav', {
         type: 'button',
         title: label,
         ariaLabel: label,
-        innerHTML: `<svg width="20" height="20" ${ICON_ATTRS} stroke-width="2.5"><polyline points="${points}"/></svg>`
+        innerHTML: icon(path)
       });
       button.dataset.step = step;
       return button;
@@ -244,6 +254,7 @@ const createDateRangePicker = (() => {
       root.style.setProperty('--radius', `${options.radius}px`);
       if (options.accentColor) root.style.setProperty('--accent', options.accentColor);
       else root.style.removeProperty('--accent');
+      triggerIcon.style.display = options.showIcon ? '' : 'none';
     };
 
     const showMonth = (index) => {

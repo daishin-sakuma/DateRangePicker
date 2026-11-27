@@ -56,7 +56,8 @@ A clean, production-grade 2-month Date Range Picker UI prototype matching the ex
 | `autoClose` | `false` | Close the dropdown once a range is committed |
 | `months` | `2` | Months shown side by side (`1` or `2`) |
 | `weekStartsOn` | `0` | `0` = Sunday, `1` = Monday |
-| `radius` | `8` | Corner radius in px |
+| `radius` | `8` | Corner radius in px; `20` or more makes days fully round |
+| `showIcon` | `true` | Show the calendar icon at the left of the trigger |
 | `theme` | `'auto'` | `'auto'` follows the OS light/dark setting; `'light'` or `'dark'` pins it |
 | `onChange` | `() => {}` | Called with `{ start, end }` when a range is committed |
 
