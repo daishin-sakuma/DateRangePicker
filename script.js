@@ -1,681 +1,389 @@
 /**
- * Date Range Picker
- * Fully English UI & Complete Figma Specification
+ * Date Range Picker — two-month calendar with range preview, endpoint re-editing
+ * and keyboard navigation.
  */
-
-document.addEventListener('DOMContentLoaded', () => {
-  // ==========================================
-  // Constants (English)
-  // ==========================================
-  const MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const MONTH_NAMES_SHORT = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-  ];
-
+(() => {
   const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  const AUTO_CLOSE_MS = 250;
 
-  // ==========================================
-  // State Management
-  // ==========================================
+  const picker = document.querySelector('.picker');
+  const trigger = picker.querySelector('.picker__trigger');
+  const valueText = picker.querySelector('.picker__value');
+  const panel = picker.querySelector('.picker__panel');
+
+  // ---------------------------------------------------------------------------
+  // Dates
+  // ---------------------------------------------------------------------------
+
+  const pad = (n) => String(n).padStart(2, '0');
+
+  // "YYYY-MM-DD" keys sort chronologically, so ranges can be compared as strings.
+  const toKey = (d) => (d ? `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` : '');
+
+  const fromKey = (key) => {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  const isSameDay = (a, b) => !!a && !!b && toKey(a) === toKey(b);
+
+  const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+
+  // Keeps the day of month, clamped to the target month's length.
+  const addMonths = (d, n) => {
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + n + 1, 0).getDate();
+    return new Date(d.getFullYear(), d.getMonth() + n, Math.min(d.getDate(), lastDay));
+  };
+
+  const monthIndex = (d) => d.getFullYear() * 12 + d.getMonth();
+  const monthStart = (index) => new Date(Math.floor(index / 12), index % 12, 1);
+
+  const orderedRange = (a, b) => (toKey(a) <= toKey(b) ? { start: a, end: b } : { start: b, end: a });
+
+  // Two consecutive days on the same calendar row render as one merged pill.
+  const isConnected = ({ start, end }) =>
+    !!start && !!end && isSameDay(addDays(start, 1), end) && start.getDay() !== 6 && start.getMonth() === end.getMonth();
+
+  // ---------------------------------------------------------------------------
+  // Formatting
+  // ---------------------------------------------------------------------------
+
+  const format = (d, options) => d.toLocaleDateString('en-US', options);
+  const monthDay = (d) => format(d, { month: 'short', day: 'numeric' });
+
+  // "Nov 3, 2026" · "Nov 3 – 10, 2026" · "Nov 3 – Dec 10, 2026" · "Nov 3, 2026 – Jan 10, 2027"
+  const formatRange = ({ start, end }) => {
+    if (!start) return 'Select date range';
+    const year = start.getFullYear();
+    if (!end) return `${monthDay(start)}, ${year} –`;
+    if (isSameDay(start, end)) return `${monthDay(start)}, ${year}`;
+    if (end.getFullYear() !== year) return `${monthDay(start)}, ${year} – ${monthDay(end)}, ${end.getFullYear()}`;
+    if (end.getMonth() === start.getMonth()) return `${monthDay(start)} – ${end.getDate()}, ${year}`;
+    return `${monthDay(start)} – ${monthDay(end)}, ${year}`;
+  };
+
+  // ---------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------
+
+  const IDLE = {
+    selecting: false,
+    anchor: null,       // Fixed end of the range; the other end follows the pointer.
+    editOrigin: null,   // Endpoint being re-edited, or null for a new range.
+    savedRange: null,   // Restored when the selection is cancelled.
+    pointerMoved: false,
+    hoverDate: null
+  };
+
   const state = {
-    // Left month on display (November 2026)
-    leftYear: 2026,
-    leftMonth: 10, // 0-indexed (10 = November)
-
-    // Initial range selection: Nov 3 – Dec 10, 2026
-    startDate: new Date(2026, 10, 3),
-    endDate: new Date(2026, 11, 10),
-
-    // Hover date for preview
-    hoverDate: null,
-
-    // Selecting state
-    isSelecting: false,
-
-    // Edit mode: null | 'start' | 'end' | 'new'
-    editMode: null,
-
-    // Edit origin tracking for click without cursor movement
-    editOriginDate: null,
-    originalStart: null,
-    originalEnd: null,
-    cursorMoved: false,
-
-    // Open dropdown initially
-    isOpen: true
+    ...IDLE,
+    isOpen: true,
+    viewMonth: monthIndex(new Date(2026, 10, 1)), // Left-hand month.
+    range: { start: new Date(2026, 10, 3), end: new Date(2026, 11, 10) },
+    focusDate: null // Day that receives the single Tab stop.
   };
 
-  // ==========================================
-  // DOM Elements
-  // ==========================================
-  const inputTrigger = document.getElementById('input-trigger');
-  const inputText = document.getElementById('input-text');
-  const dropdown = document.getElementById('calendar-dropdown');
-  const dualWrapper = document.getElementById('calendar-dual-wrapper');
+  let closeTimer = null;
 
-  // ==========================================
-  // Utility Functions
-  // ==========================================
-  const formatDateKey = (d) => {
-    if (!d) return '';
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+  // ---------------------------------------------------------------------------
+  // Rendering
+  // ---------------------------------------------------------------------------
+
+  const h = (tag, className, props = {}) => Object.assign(document.createElement(tag), { className, ...props });
+
+  const NAV = {
+    [-1]: { label: 'Previous month', points: '15 18 9 12 15 6' },
+    [1]: { label: 'Next month', points: '9 18 15 12 9 6' }
   };
 
-  // Standard English Date Formatting
-  const formatEnglishDate = (d, withYear = true) => {
-    if (!d) return '';
-    const m = MONTH_NAMES_SHORT[d.getMonth()];
-    const day = d.getDate();
-    return withYear ? `${m} ${day}, ${d.getFullYear()}` : `${m} ${day}`;
+  const createNavButton = (step) => {
+    const { label, points } = NAV[step];
+    const button = h('button', 'month__nav', {
+      type: 'button',
+      title: label,
+      ariaLabel: label,
+      innerHTML: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="${points}"></polyline></svg>`
+    });
+    button.dataset.step = step;
+    return button;
   };
 
-  const isSameDay = (d1, d2) => {
-    if (!d1 || !d2) return false;
-    return (
-      d1.getFullYear() === d2.getFullYear() &&
-      d1.getMonth() === d2.getMonth() &&
-      d1.getDate() === d2.getDate()
+  const createDay = (date, month, column) => {
+    const label = h('span', 'day__label', { textContent: date.getDate() });
+
+    if (date.getMonth() !== month) {
+      const day = h('div', 'day day--outside', { ariaHidden: 'true' });
+      day.append(label);
+      return day;
+    }
+
+    const day = h('button', 'day', {
+      type: 'button',
+      tabIndex: -1,
+      ariaLabel: format(date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    });
+    day.dataset.date = toKey(date);
+    day.classList.toggle('day--edge-start', column === 0 || date.getDate() === 1);
+    day.classList.toggle('day--edge-end', column === 6 || addDays(date, 1).getMonth() !== month);
+    day.append(label);
+    return day;
+  };
+
+  const createMonth = (index) => {
+    const first = monthStart(index);
+    const offset = first.getDay();
+    const daysInMonth = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+    const slots = offset + daysInMonth > 35 ? 42 : 35;
+
+    const header = h('div', 'month__header');
+    header.append(
+      createNavButton(-1),
+      h('h2', 'month__title', { textContent: format(first, { month: 'long', year: 'numeric' }) }),
+      createNavButton(1)
     );
+
+    const weekdays = h('div', 'month__weekdays');
+    weekdays.append(...WEEKDAYS.map((name) => h('span', 'month__weekday', { textContent: name })));
+
+    const days = h('div', 'month__days');
+    days.append(...Array.from({ length: slots }, (_, i) =>
+      createDay(addDays(first, i - offset), first.getMonth(), i % 7)
+    ));
+
+    const month = h('section', 'month');
+    month.append(header, weekdays, days);
+    return month;
   };
 
-  const isBefore = (d1, d2) => {
-    const t1 = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate()).getTime();
-    const t2 = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate()).getTime();
-    return t1 < t2;
-  };
+  const dayButtons = () => panel.querySelectorAll('.day[data-date]');
 
-  const isBetween = (target, start, end) => {
-    if (!target || !start || !end) return false;
-    const t = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
-    const s = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
-    const e = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime();
-    const min = Math.min(s, e);
-    const max = Math.max(s, e);
-    return t >= min && t <= max;
-  };
+  // Hovering the endpoint being re-edited keeps the saved range on screen.
+  const previewRange = (date) =>
+    isSameDay(date, state.editOrigin) ? state.savedRange : orderedRange(state.anchor, date);
 
-  // Check if two dates are adjacent on the same row (no gap)
-  const isAdjacentDays = (d1, d2) => {
-    if (!d1 || !d2) return false;
-    const t1 = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate()).getTime();
-    const t2 = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate()).getTime();
-    return (t2 - t1 === 86400000) && (d1.getDay() !== 6);
-  };
+  const paintRange = () => {
+    const range = state.selecting && state.hoverDate ? previewRange(state.hoverDate) : state.range;
+    const startKey = toKey(range.start);
+    const endKey = toKey(range.end) || startKey;
+    const single = startKey === endKey;
+    const connected = isConnected(range);
+    const editable = !state.selecting && state.range.end ? [toKey(state.range.start), toKey(state.range.end)] : [];
 
-  // ==========================================
-  // Dropdown Open/Close
-  // ==========================================
-  const openDropdown = () => {
-    state.isOpen = true;
-    dropdown.classList.add('open');
-    inputTrigger.classList.add('active');
-    inputTrigger.setAttribute('aria-expanded', 'true');
-    renderCalendars();
-  };
-
-  const closeDropdown = () => {
-    state.isOpen = false;
-    dropdown.classList.remove('open');
-    inputTrigger.classList.remove('active');
-    inputTrigger.setAttribute('aria-expanded', 'false');
-    
-    if (state.isSelecting) {
-      state.isSelecting = false;
-      state.editMode = null;
-      state.editOriginDate = null;
-      state.cursorMoved = false;
-      state.hoverDate = null;
-      renderCalendars();
+    for (const day of dayButtons()) {
+      const key = day.dataset.date;
+      const isStart = key === startKey;
+      const isEnd = key === endKey;
+      day.classList.toggle('is-single', single && isStart);
+      day.classList.toggle('is-start', !single && isStart);
+      day.classList.toggle('is-end', !single && isEnd);
+      day.classList.toggle('is-between', key > startKey && key < endKey);
+      day.classList.toggle('is-connected', connected && (isStart || isEnd));
+      day.classList.toggle('is-editable', editable.includes(key));
+      day.ariaPressed = String(!!startKey && key >= startKey && key <= endKey);
     }
   };
 
-  const toggleDropdown = () => {
-    if (state.isOpen) {
-      closeDropdown();
-    } else {
-      openDropdown();
-    }
+  const isVisible = (d) => !!d && [0, 1].includes(monthIndex(d) - state.viewMonth);
+
+  // Roving tabindex: only one day is reachable with Tab; arrow keys move within the grid.
+  const updateTabStop = () => {
+    const target = [state.focusDate, state.range.start].find(isVisible) ?? monthStart(state.viewMonth);
+    const key = toKey(target);
+    for (const day of dayButtons()) day.tabIndex = day.dataset.date === key ? 0 : -1;
   };
 
-  // ==========================================
-  // Calendar Rendering
-  // ==========================================
-  const renderCalendars = () => {
-    dualWrapper.innerHTML = '';
+  const render = () => {
+    panel.replaceChildren(createMonth(state.viewMonth), createMonth(state.viewMonth + 1));
+    paintRange();
+    updateTabStop();
+  };
 
-    const monthsData = [
-      { year: state.leftYear, month: state.leftMonth, isLeft: true },
-      {
-        year: state.leftMonth === 11 ? state.leftYear + 1 : state.leftYear,
-        month: state.leftMonth === 11 ? 0 : state.leftMonth + 1,
-        isLeft: false
-      }
-    ];
+  const updateValue = () => {
+    const text = formatRange(state.range);
+    valueText.textContent = text;
+    trigger.ariaLabel = `Date range: ${text}`;
+  };
 
-    monthsData.forEach((mData) => {
-      const monthCol = document.createElement('div');
-      monthCol.className = 'month-container';
+  const showMonth = (index) => {
+    state.viewMonth = index;
+    render();
+  };
 
-      // Header row (< Month Year >)
-      const headerRow = document.createElement('div');
-      headerRow.className = 'month-header-row';
+  // ---------------------------------------------------------------------------
+  // Open / close
+  // ---------------------------------------------------------------------------
 
-      if (mData.isLeft) {
-        const prevBtn = document.createElement('button');
-        prevBtn.type = 'button';
-        prevBtn.className = 'calendar-nav-btn';
-        prevBtn.title = 'Previous month';
-        prevBtn.setAttribute('aria-label', 'Previous month');
-        prevBtn.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-        `;
-        prevBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          navigateMonth(-1);
-        });
-        headerRow.appendChild(prevBtn);
-      } else {
-        const spacer = document.createElement('div');
-        spacer.className = 'nav-spacer';
-        headerRow.appendChild(spacer);
-      }
+  const setOpen = (isOpen) => {
+    clearTimeout(closeTimer);
+    state.isOpen = isOpen;
+    panel.classList.toggle('is-open', isOpen);
+    trigger.ariaExpanded = String(isOpen);
+  };
 
-      const title = document.createElement('div');
-      title.className = 'month-title';
-      title.textContent = `${MONTH_NAMES[mData.month]} ${mData.year}`;
-      headerRow.appendChild(title);
+  const open = (focusCalendar = false) => {
+    setOpen(true);
+    if (state.range.start) state.viewMonth = monthIndex(state.range.start);
+    state.focusDate = null;
+    render();
+    if (focusCalendar) panel.querySelector('.day[tabindex="0"]')?.focus();
+  };
 
-      if (!mData.isLeft) {
-        const nextBtn = document.createElement('button');
-        nextBtn.type = 'button';
-        nextBtn.className = 'calendar-nav-btn';
-        nextBtn.title = 'Next month';
-        nextBtn.setAttribute('aria-label', 'Next month');
-        nextBtn.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        `;
-        nextBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          navigateMonth(1);
-        });
-        headerRow.appendChild(nextBtn);
-      } else {
-        const spacer = document.createElement('div');
-        spacer.className = 'nav-spacer';
-        headerRow.appendChild(spacer);
-      }
+  const close = () => {
+    setOpen(false);
+    if (state.selecting) commit(state.savedRange);
+    if (panel.contains(document.activeElement)) trigger.focus();
+  };
 
-      monthCol.appendChild(headerRow);
+  // ---------------------------------------------------------------------------
+  // Selection
+  // ---------------------------------------------------------------------------
 
-      // Weekday Header (Su Mo Tu We Th Fr Sa)
-      const weekGrid = document.createElement('div');
-      weekGrid.className = 'weekdays-grid';
-      WEEKDAYS.forEach(day => {
-        const dEl = document.createElement('div');
-        dEl.className = 'weekday-cell';
-        dEl.textContent = day;
-        weekGrid.appendChild(dEl);
-      });
-      monthCol.appendChild(weekGrid);
-
-      // Days Grid
-      const daysGrid = document.createElement('div');
-      daysGrid.className = 'days-grid';
-
-      const cells = getMonthGridCells(mData.year, mData.month);
-
-      cells.forEach(cell => {
-        const cellEl = createDayCellElement(cell);
-        daysGrid.appendChild(cellEl);
-      });
-
-      monthCol.appendChild(daysGrid);
-      dualWrapper.appendChild(monthCol);
+  const beginSelection = (anchor, editOrigin = null) => {
+    clearTimeout(closeTimer);
+    Object.assign(state, {
+      selecting: true,
+      anchor,
+      editOrigin,
+      savedRange: state.range,
+      pointerMoved: false,
+      hoverDate: editOrigin
     });
-
-    updateHighlightClasses();
   };
 
-  // Generate 35 or 42 slots per month grid
-  const getMonthGridCells = (year, month) => {
-    const firstDayIndex = new Date(year, month, 1).getDay(); // 0(Sun) - 6(Sat)
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const daysInPrevMonth = new Date(year, month, 0).getDate();
-
-    const cells = [];
-
-    // Trailing days of previous month
-    for (let i = firstDayIndex - 1; i >= 0; i--) {
-      const d = daysInPrevMonth - i;
-      const prevDate = new Date(year, month - 1, d);
-      cells.push({
-        date: prevDate,
-        dayNum: d,
-        isCurrentMonth: false,
-        isMonthStart: false,
-        isMonthEnd: false,
-        colIndex: (firstDayIndex - 1 - i) % 7
-      });
-    }
-
-    // Days of current month
-    for (let d = 1; d <= daysInMonth; d++) {
-      const curDate = new Date(year, month, d);
-      cells.push({
-        date: curDate,
-        dayNum: d,
-        isCurrentMonth: true,
-        isMonthStart: d === 1,
-        isMonthEnd: d === daysInMonth,
-        colIndex: (firstDayIndex + d - 1) % 7
-      });
-    }
-
-    // Leading days of next month
-    const totalSlots = cells.length > 35 ? 42 : 35;
-    const nextDaysNeeded = totalSlots - cells.length;
-    for (let d = 1; d <= nextDaysNeeded; d++) {
-      const nextDate = new Date(year, month + 1, d);
-      cells.push({
-        date: nextDate,
-        dayNum: d,
-        isCurrentMonth: false,
-        isMonthStart: false,
-        isMonthEnd: false,
-        colIndex: (cells.length) % 7
-      });
-    }
-
-    return cells;
+  const commit = (range) => {
+    Object.assign(state, IDLE, { range });
+    paintRange();
+    updateValue();
   };
 
-  // Create single day cell element
-  const createDayCellElement = (cell) => {
-    const el = document.createElement('div');
-    el.className = 'day-cell';
-    el.dataset.date = formatDateKey(cell.date);
-    el.dataset.currentMonth = cell.isCurrentMonth ? 'true' : 'false';
-
-    if (!cell.isCurrentMonth) {
-      el.classList.add('other-month');
-      el.setAttribute('aria-disabled', 'true');
-      el.setAttribute('tabindex', '-1');
+  const selectDate = (date) => {
+    if (state.selecting) {
+      // Clicking the edited endpoint again without moving away selects just that day.
+      const single = isSameDay(date, state.editOrigin) && !state.pointerMoved;
+      commit(single ? { start: date, end: date } : previewRange(date));
+      closeTimer = setTimeout(close, AUTO_CLOSE_MS);
+      return;
     }
 
-    if (cell.colIndex === 0) el.classList.add('col-first');
-    if (cell.colIndex === 6) el.classList.add('col-last');
-    if (cell.isMonthStart) el.classList.add('month-start-boundary');
-    if (cell.isMonthEnd) el.classList.add('month-end-boundary');
-
-    const inner = document.createElement('div');
-    inner.className = 'day-inner';
-    inner.textContent = cell.dayNum;
-    el.appendChild(inner);
-
-    // Only attach click/hover to current month days
-    if (cell.isCurrentMonth) {
-      el.addEventListener('mouseenter', () => handleCellHover(cell.date));
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        handleCellClick(cell.date);
-      });
+    const { start, end } = state.range;
+    if (end && isSameDay(date, start)) {
+      beginSelection(end, date);
+    } else if (end && isSameDay(date, end)) {
+      beginSelection(start, date);
+    } else {
+      beginSelection(date);
+      state.range = { start: date, end: null };
+      updateValue();
     }
-
-    return el;
+    paintRange();
   };
 
-  // ==========================================
-  // Interaction Control
-  // ==========================================
-  const handleCellClick = (clickedDate) => {
-    // State 1: Idle
-    if (!state.isSelecting) {
-      if (state.startDate && state.endDate) {
-        // Re-edit start date
-        if (isSameDay(clickedDate, state.startDate)) {
-          state.isSelecting = true;
-          state.editMode = 'start';
-          state.editOriginDate = clickedDate;
-          state.originalStart = state.startDate;
-          state.originalEnd = state.endDate;
-          state.cursorMoved = false;
-          state.hoverDate = clickedDate;
-          updateHighlightClasses();
-          return;
-        }
-
-        // Re-edit end date
-        if (isSameDay(clickedDate, state.endDate)) {
-          state.isSelecting = true;
-          state.editMode = 'end';
-          state.editOriginDate = clickedDate;
-          state.originalStart = state.startDate;
-          state.originalEnd = state.endDate;
-          state.cursorMoved = false;
-          state.hoverDate = clickedDate;
-          updateHighlightClasses();
-          return;
-        }
-      }
-
-      // Start new selection
-      state.startDate = clickedDate;
-      state.endDate = null;
-      state.hoverDate = null;
-      state.isSelecting = true;
-      state.editMode = 'new';
-      state.editOriginDate = null;
-      state.cursorMoved = false;
-
-      updateHighlightClasses();
-      updateInputDisplay();
-    }
-    // State 2: Second click (Commit)
-    else {
-      if (state.editMode === 'start') {
-        if (isSameDay(clickedDate, state.editOriginDate)) {
-          if (!state.cursorMoved) {
-            // Clicked without moving cursor -> Single date selection
-            state.startDate = clickedDate;
-            state.endDate = clickedDate;
-          } else {
-            // Moved cursor and returned -> Cancel edit, keep original range
-            state.startDate = state.originalStart;
-            state.endDate = state.originalEnd;
-          }
-        } else if (isSameDay(clickedDate, state.originalEnd)) {
-          state.startDate = clickedDate;
-          state.endDate = clickedDate;
-        } else {
-          let newStart = clickedDate;
-          let finalEnd = state.originalEnd;
-
-          if (isBefore(finalEnd, newStart)) {
-            newStart = state.originalEnd;
-            finalEnd = clickedDate;
-          }
-
-          state.startDate = newStart;
-          state.endDate = finalEnd;
-        }
-      } else if (state.editMode === 'end') {
-        if (isSameDay(clickedDate, state.editOriginDate)) {
-          if (!state.cursorMoved) {
-            // Clicked without moving cursor -> Single date selection
-            state.startDate = clickedDate;
-            state.endDate = clickedDate;
-          } else {
-            // Moved cursor and returned -> Cancel edit, keep original range
-            state.startDate = state.originalStart;
-            state.endDate = state.originalEnd;
-          }
-        } else if (isSameDay(clickedDate, state.originalStart)) {
-          state.startDate = clickedDate;
-          state.endDate = clickedDate;
-        } else {
-          let finalStart = state.originalStart;
-          let newEnd = clickedDate;
-
-          if (isBefore(newEnd, finalStart)) {
-            finalStart = clickedDate;
-            newEnd = state.originalStart;
-          }
-
-          state.startDate = finalStart;
-          state.endDate = newEnd;
-        }
-      } else {
-        // New range commit
-        if (isSameDay(clickedDate, state.startDate)) {
-          state.endDate = clickedDate;
-        } else {
-          let finalStart = state.startDate;
-          let finalEnd = clickedDate;
-
-          if (isBefore(clickedDate, state.startDate)) {
-            finalStart = clickedDate;
-            finalEnd = state.startDate;
-          }
-
-          state.startDate = finalStart;
-          state.endDate = finalEnd;
-        }
-      }
-
-      state.isSelecting = false;
-      state.editMode = null;
-      state.editOriginDate = null;
-      state.cursorMoved = false;
-      state.hoverDate = null;
-
-      updateHighlightClasses();
-      updateInputDisplay();
-
-      // Smooth auto-close
-      setTimeout(() => {
-        closeDropdown();
-      }, 250);
-    }
-  };
-
-  const handleCellHover = (date) => {
-    if (!state.isSelecting) return;
-
-    if (state.editOriginDate && !isSameDay(date, state.editOriginDate)) {
-      state.cursorMoved = true;
-    }
-
+  const previewTo = (date) => {
+    if (!state.selecting || isSameDay(date, state.hoverDate)) return;
+    if (state.editOrigin && !isSameDay(date, state.editOrigin)) state.pointerMoved = true;
     state.hoverDate = date;
-    updateHighlightClasses();
+    paintRange();
   };
 
-  // Update Highlight Classes
-  const updateHighlightClasses = () => {
-    const allCells = dualWrapper.querySelectorAll('.day-cell');
-    
-    let activeStart = state.startDate;
-    let activeEnd = state.endDate;
-
-    if (state.isSelecting && state.hoverDate) {
-      if (state.editMode === 'start') {
-        if (isSameDay(state.hoverDate, state.editOriginDate)) {
-          // Keep range display until commit
-          activeStart = state.originalStart;
-          activeEnd = state.originalEnd;
-        } else if (isSameDay(state.hoverDate, state.originalEnd)) {
-          activeStart = state.hoverDate;
-          activeEnd = state.hoverDate;
-        } else if (state.originalEnd && isBefore(state.originalEnd, state.hoverDate)) {
-          activeStart = state.originalEnd;
-          activeEnd = state.hoverDate;
-        } else {
-          activeStart = state.hoverDate;
-          activeEnd = state.originalEnd;
-        }
-      } else if (state.editMode === 'end') {
-        if (isSameDay(state.hoverDate, state.editOriginDate)) {
-          // Keep range display until commit
-          activeStart = state.originalStart;
-          activeEnd = state.originalEnd;
-        } else if (isSameDay(state.hoverDate, state.originalStart)) {
-          activeStart = state.hoverDate;
-          activeEnd = state.hoverDate;
-        } else if (state.originalStart && isBefore(state.hoverDate, state.originalStart)) {
-          activeStart = state.hoverDate;
-          activeEnd = state.originalStart;
-        } else {
-          activeStart = state.originalStart;
-          activeEnd = state.hoverDate;
-        }
-      } else {
-        if (isSameDay(state.hoverDate, state.startDate)) {
-          activeStart = state.startDate;
-          activeEnd = state.startDate;
-        } else if (isBefore(state.hoverDate, state.startDate)) {
-          activeStart = state.hoverDate;
-          activeEnd = state.startDate;
-        } else {
-          activeStart = state.startDate;
-          activeEnd = state.hoverDate;
-        }
-      }
-    }
-
-    // Check if exactly 2 consecutive days on the same row
-    const isAdjacent = isAdjacentDays(activeStart, activeEnd);
-
-    allCells.forEach(cell => {
-      const cellDateKey = cell.dataset.date;
-      const isCurrentMonth = cell.dataset.currentMonth === 'true';
-      if (!cellDateKey) return;
-      
-      const parts = cellDateKey.split('-');
-      const cellDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-
-      cell.classList.remove(
-        'in-range',
-        'range-start',
-        'range-end',
-        'range-single',
-        'range-hover-end',
-        'editable-endpoint',
-        'connected-start',
-        'connected-end'
-      );
-
-      // Do not highlight disabled/other-month days
-      if (!isCurrentMonth) return;
-      if (!activeStart) return;
-
-      const isStart = isSameDay(cellDate, activeStart);
-      const isEnd = activeEnd && isSameDay(cellDate, activeEnd);
-
-      if (isStart && !activeEnd) {
-        cell.classList.add('range-single');
-      } else if (isStart && isEnd) {
-        cell.classList.add('range-single');
-      } else if (isStart) {
-        cell.classList.add('range-start');
-        if (isAdjacent) {
-          cell.classList.add('connected-start');
-        }
-      } else if (isEnd) {
-        cell.classList.add('range-end');
-        if (isAdjacent) {
-          cell.classList.add('connected-end');
-        }
-      } else if (activeEnd && isBetween(cellDate, activeStart, activeEnd)) {
-        cell.classList.add('in-range');
-      }
-
-      if (!state.isSelecting && state.startDate && state.endDate) {
-        if (isSameDay(cellDate, state.startDate) || isSameDay(cellDate, state.endDate)) {
-          cell.classList.add('editable-endpoint');
-        }
-      }
-
-      if (state.isSelecting && state.hoverDate && isSameDay(cellDate, state.hoverDate)) {
-        if (state.editMode === 'end' || state.editMode === 'new') {
-          cell.classList.add('range-hover-end');
-          if (isAdjacent) {
-            cell.classList.add('connected-end');
-          }
-        }
-      }
-    });
-  };
-
-  const navigateMonth = (step) => {
-    state.leftMonth += step;
-    if (state.leftMonth < 0) {
-      state.leftMonth = 11;
-      state.leftYear -= 1;
-    } else if (state.leftMonth > 11) {
-      state.leftMonth = 0;
-      state.leftYear += 1;
-    }
-    renderCalendars();
-  };
-
-  // English Input Form Formatting
-  const updateInputDisplay = () => {
-    if (state.startDate && state.endDate) {
-      // Single day
-      if (isSameDay(state.startDate, state.endDate)) {
-        inputText.textContent = formatEnglishDate(state.startDate, true);
-      }
-      // Same month & same year: e.g. "Nov 3 – 10, 2026"
-      else if (
-        state.startDate.getFullYear() === state.endDate.getFullYear() &&
-        state.startDate.getMonth() === state.endDate.getMonth()
-      ) {
-        const m = MONTH_NAMES_SHORT[state.startDate.getMonth()];
-        const y = state.startDate.getFullYear();
-        inputText.textContent = `${m} ${state.startDate.getDate()} – ${state.endDate.getDate()}, ${y}`;
-      }
-      // Same year, different month: e.g. "Nov 3 – Dec 10, 2026"
-      else if (state.startDate.getFullYear() === state.endDate.getFullYear()) {
-        const s = formatEnglishDate(state.startDate, false);
-        const e = formatEnglishDate(state.endDate, false);
-        inputText.textContent = `${s} – ${e}, ${state.startDate.getFullYear()}`;
-      }
-      // Different year: e.g. "Nov 3, 2026 – Jan 10, 2027"
-      else {
-        const s = formatEnglishDate(state.startDate, true);
-        const e = formatEnglishDate(state.endDate, true);
-        inputText.textContent = `${s} – ${e}`;
-      }
-    } else if (state.startDate) {
-      inputText.textContent = `${formatEnglishDate(state.startDate, true)} –`;
+  const moveFocus = (date) => {
+    state.focusDate = date;
+    if (isVisible(date)) {
+      updateTabStop();
     } else {
-      inputText.textContent = 'Select date range';
+      const offset = monthIndex(date) - state.viewMonth;
+      showMonth(state.viewMonth + (offset < 0 ? offset : offset - 1));
+    }
+    panel.querySelector(`[data-date="${toKey(date)}"]`)?.focus();
+  };
+
+  const navigate = (button) => {
+    const { step } = button.dataset;
+    const hadFocus = button === document.activeElement;
+    state.focusDate = null;
+    showMonth(state.viewMonth + Number(step));
+
+    // The re-render replaced the button; hand focus to the visible one with the same step.
+    if (hadFocus) {
+      [...panel.querySelectorAll(`.month__nav[data-step="${step}"]`)]
+        .find((b) => b.checkVisibility({ visibilityProperty: true }))
+        ?.focus();
     }
   };
 
-  // ==========================================
-  // Event Listeners
-  // ==========================================
-  inputTrigger.addEventListener('click', toggleDropdown);
+  // ---------------------------------------------------------------------------
+  // Events
+  // ---------------------------------------------------------------------------
 
-  inputTrigger.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+  const KEY_MOVES = {
+    ArrowLeft: (d) => addDays(d, -1),
+    ArrowRight: (d) => addDays(d, 1),
+    ArrowUp: (d) => addDays(d, -7),
+    ArrowDown: (d) => addDays(d, 7),
+    Home: (d) => addDays(d, -d.getDay()),
+    End: (d) => addDays(d, 6 - d.getDay()),
+    PageUp: (d) => addMonths(d, -1),
+    PageDown: (d) => addMonths(d, 1)
+  };
+
+  const dayFrom = (e) => e.target.closest('.day[data-date]');
+
+  panel.addEventListener('click', (e) => {
+    const nav = e.target.closest('.month__nav');
+    const day = dayFrom(e);
+    if (nav) navigate(nav);
+    else if (day) selectDate(fromKey(day.dataset.date));
+  });
+
+  panel.addEventListener('mouseover', (e) => {
+    const day = dayFrom(e);
+    if (day) previewTo(fromKey(day.dataset.date));
+  });
+
+  panel.addEventListener('mouseleave', () => {
+    if (!state.selecting) return;
+    state.hoverDate = state.editOrigin;
+    paintRange();
+  });
+
+  panel.addEventListener('focusin', (e) => {
+    const day = dayFrom(e);
+    if (!day) return;
+    const date = fromKey(day.dataset.date);
+    state.focusDate = date;
+    updateTabStop();
+    previewTo(date);
+  });
+
+  panel.addEventListener('keydown', (e) => {
+    const day = dayFrom(e);
+    const move = KEY_MOVES[e.key];
+    if (!day || !move) return;
+    e.preventDefault();
+    moveFocus(move(fromKey(day.dataset.date)));
+  });
+
+  // detail === 0 means the click came from the keyboard, so focus moves into the calendar.
+  trigger.addEventListener('click', (e) => (state.isOpen ? close() : open(e.detail === 0)));
+
+  trigger.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' && !state.isOpen) {
       e.preventDefault();
-      toggleDropdown();
-    } else if (e.key === 'Escape' && state.isOpen) {
-      e.preventDefault();
-      closeDropdown();
+      open(true);
     }
   });
 
+  // composedPath() still contains nodes that a re-render removed during this click.
   document.addEventListener('click', (e) => {
-    if (!state.isOpen) return;
-    const isInsideInput = inputTrigger.contains(e.target);
-    const isInsideDropdown = dropdown.contains(e.target);
-
-    if (!isInsideInput && !isInsideDropdown) {
-      closeDropdown();
-    }
+    if (state.isOpen && !e.composedPath().includes(picker)) close();
   });
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && state.isOpen) {
-      closeDropdown();
+      e.preventDefault();
+      close();
     }
   });
 
-  // Initial Render
-  renderCalendars();
-  updateInputDisplay();
-});
+  render();
+  updateValue();
+})();

@@ -8,25 +8,34 @@ A clean, production-grade 2-month Date Range Picker UI prototype matching the ex
 
 ## Key Features
 
-1. **Dual Month Continuous Display**:
-   - Two consecutive months rendered side-by-side (`November 2026` & `December 2026`).
-   - Seamless month navigation via `<` and `>` chevrons.
-2. **Refined English Formatting**:
-   - Weekdays header: `Su  Mo  Tu  We  Th  Fr  Sa`
-   - Month headers: `November 2026`, `December 2026`
-   - Input trigger display: `Nov 3 – Dec 10, 2026` (or `Nov 3, 2026` for single day selection, `Nov 3 – 4, 2026` for consecutive days in the same month).
-3. **Seamless Range & Endpoint Styling**:
-   - Row-level capsule pills (`#e8e7f7`) for highlighted ranges.
-   - Distinct rounded endpoint styling (`#d4d4f0`) with subtle outline stroke (`#c4c0e1`).
-   - **Consecutive 2-day selection**: automatically joins two adjacent cells into a single unified pill.
-4. **Re-edit Interaction UX**:
-   - Clicking an already selected start/end date initiates re-editing.
-   - Clicking the same date again without moving the cursor confirms as a single-day selection.
-   - If the cursor is moved away and then brought back to the original date, it recognizes cancellation (keeps original range).
-   - Keeps the active range display intact until the second click.
-   - Other-month (disabled) days are non-interactive and excluded from selection highlights.
-5. **Auto-close on Second Click**:
-   - Confirms selection and automatically collapses the dropdown on the second click.
+1. **Dual Month Display**
+   - Two consecutive months side by side, navigated with `<` and `>`.
+   - On narrow screens the months stack vertically with both arrows on the top month.
+2. **English Formatting**
+   - Weekdays: `Su Mo Tu We Th Fr Sa` · Month headers: `November 2026`
+   - Trigger: `Nov 3 – Dec 10, 2026`, `Nov 3 – 10, 2026`, `Nov 3, 2026`, or `Dec 30, 2026 – Jan 2, 2027`.
+3. **Range Styling**
+   - Row-level rounded bands for the range, outlined pills for the endpoints.
+   - Two adjacent days merge into a single pill.
+4. **Selection & Re-editing**
+   - The range previews as the pointer moves; the second click commits and closes the dropdown.
+   - Clicking an endpoint re-edits it while the other end stays fixed.
+   - Clicking the same endpoint again without moving away selects just that day; moving away and back cancels the edit.
+   - Closing mid-selection (outside click, `Esc`, or the trigger) restores the previous range.
+5. **Keyboard & Accessibility**
+   - `Enter` / `Space` / `↓` on the trigger opens the calendar and focuses a day.
+   - Arrow keys move by day/week, `Home` / `End` to the week edges, `PageUp` / `PageDown` by month.
+   - `Esc` closes and returns focus to the trigger. Selected days expose `aria-pressed`.
+
+---
+
+## Project Structure
+
+| File | Role |
+| --- | --- |
+| `index.html` | Trigger button and empty panel |
+| `script.js` | State, rendering, and interactions (no dependencies) |
+| `style.css` | Design tokens on `:root`, BEM-style classes (`.picker__*`, `.month__*`, `.day`) with `is-*` states |
 
 ---
 

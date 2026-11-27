@@ -1,355 +1,310 @@
-/* ========================================================
-   Date Range Picker
-   画像デザイン完全再現・余分な要素を全排除
-   ======================================================== */
-
 :root {
-  --range-bg: #e8e7f7;              /* 薄いパープル帯 */
-  --range-endpoint-bg: #d4d4f0;     /* 濃いパープル選択セル */
-  --range-stroke: #c4c0e1;          /* うっすらアウトラインストローク */
-  --range-stroke-hover: #a5a0d6;
-  --text-main: #1e1e1e;             /* 当月の日付文字 */
-  --text-muted: #666666;            /* 曜日 */
-  --text-disabled: #cbd5e1;         /* 隣接月のグレー文字 */
-  
-  --radius-card: 16px;
-  --radius-pill: 8px;
-  --cell-height: 38px;
+  /* Surface */
+  --color-page: #efefef;
+  --color-surface: #ffffff;
+
+  /* Text */
+  --color-text: #1e1e1e;
+  --color-text-muted: #000000af;
+  --color-text-disabled: #00000033;
+
+  /* Fill */
+  --color-fill-subtle: #00000010;
+  --color-fill-selected: #0000001f;
+
+  /* Border */
+  --color-border: #0000001a;
+  --color-stroke-selected: #0000004f;
+  --color-stroke-selected-hover: #00000073;
+
+  /* Focus */
+  --color-ring: #0000005e;
+  --color-ring-soft: #00000030;
+
+  /* Shadow */
+  --shadow-xs: 0 1px 2px #0000000d;
+  --shadow-md: 0 4px 6px -1px #0000001a, 0 2px 4px -2px #0000001a;
+
+  /* Sizes */
+  --radius-md: 8px;
+  --size-control: 36px;
+  --size-cell: 40px;
+  --size-nav: 32px;
+  --size-icon: 16px;
+
+  /* Motion */
+  --duration-fast: 0.15s;
+  --duration-base: 0.2s;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-  background-color: #eee;
-  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  min-height: 100vh;
   padding: 40px 20px;
-  color: var(--text-main);
+  font-family: Figtree, League Spartan, Geologica, Sen, Public Sans, sans-serif;
+  color: var(--color-text);
+  background-color: var(--color-page);
   user-select: none;
 }
 
-/* ピッカー全体のラッパー */
-.picker-container {
-  position: relative;
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Picker */
+
+.picker {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 4px;
 }
 
-/* 入力ボックストリガー（画像完全一致） */
-.input-trigger {
-  background: #ffffff;
-  border: 1.5px solid #737373;
-  border-radius: 8px;
-  padding: 7px 14px;
+/* Outline button (shadcn/ui style) */
+.picker__trigger {
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: border-color 0.15s ease;
-  margin-bottom: 12px;
+  gap: 8px;
+  min-width: 260px;
+  height: var(--size-control);
+  padding: 0 12px;
+  font-size: 14px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xs);
+  transition:
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
 }
 
-.input-trigger:hover {
-  border-color: #444444;
+.picker__trigger:focus-visible,
+.month__nav:focus-visible {
+  outline: none;
+  border-color: var(--color-ring);
+  box-shadow: 0 0 0 3px var(--color-ring-soft);
 }
 
-.input-text {
-  font-size: 15px;
-  font-weight: 500;
-  color: #1a1a1a;
-  letter-spacing: -0.01em;
+.picker__trigger svg {
+  width: var(--size-icon);
+  height: var(--size-icon);
+  flex-shrink: 0;
 }
 
-.dropdown-chevron {
-  display: flex;
-  align-items: center;
-  color: #333333;
-  transition: transform 0.2s ease;
+.picker__chevron {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  transition: transform var(--duration-base) ease;
 }
 
-.input-trigger.active .dropdown-chevron {
+.picker__trigger[aria-expanded="true"] .picker__chevron {
   transform: rotate(180deg);
 }
 
-/* ドロップダウンコンテナ */
-.calendar-dropdown {
-  position: relative;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-6px);
-  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s;
-}
-
-.calendar-dropdown.open {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-/* カレンダーカード（余計なフッター・ボタンは一切なし） */
-.calendar-card {
-  background: #ffffff;
-  border-radius: var(--radius-card);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
-  padding: 20px 24px 24px;
-  width: 638px;
-}
-
-/* 2ヶ月並び */
-.calendar-dual-wrapper {
+.picker__panel {
   display: grid;
   grid-template-columns: 1fr 1fr;
   column-gap: 36px;
+  width: 624px;
+  padding: 16px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition:
+    opacity var(--duration-base) ease,
+    transform var(--duration-base) var(--ease-out),
+    visibility var(--duration-base);
 }
 
-/* 単月コンテナ */
-.month-container {
-  display: flex;
-  flex-direction: column;
+.picker__panel.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
 }
 
-/* ヘッダー行 (< 2026年11月 / 2026年12月 >) */
-.month-header-row {
+/* Month */
+
+.month__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   height: 36px;
   margin-bottom: 12px;
 }
 
-.month-title {
+.month__title {
+  flex: 1;
   font-size: 16px;
   font-weight: 700;
-  color: #1a1a1a;
   letter-spacing: -0.01em;
-  flex: 1;
   text-align: center;
 }
 
-.calendar-nav-btn {
-  background: transparent;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #222222;
-  transition: background-color 0.15s ease;
+.month__nav {
+  display: grid;
+  place-items: center;
+  width: var(--size-nav);
+  height: var(--size-nav);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) ease;
 }
 
-.calendar-nav-btn:hover {
-  background-color: #f1f5f9;
-}
-
-.nav-spacer {
-  width: 32px;
-  height: 32px;
+/* Side by side, "<" belongs to the left month and ">" to the right one. */
+.month:first-child .month__nav[data-step="1"],
+.month:last-child .month__nav[data-step="-1"] {
   visibility: hidden;
 }
 
-/* 曜日ヘッダー */
-.weekdays-grid {
+.month__weekdays,
+.month__days {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  text-align: center;
+}
+
+.month__weekdays {
   margin-bottom: 8px;
 }
 
-.weekday-cell {
+.month__weekday {
+  padding: 4px 0;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-muted);
-  padding: 4px 0;
+  color: var(--color-text-muted);
+  text-align: center;
 }
 
-/* 日付グリッド: 列間ギャップゼロ（シームレス結合） */
-.days-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
+.month__days {
   row-gap: 5px;
-  column-gap: 0;
 }
 
-/* 日付セル */
-.day-cell {
-  position: relative;
-  height: var(--cell-height);
+/* Day */
+
+.day {
+  --stroke: var(--color-stroke-selected);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  height: var(--size-cell);
   font-size: 15px;
   font-weight: 500;
-  color: var(--text-main);
-  cursor: pointer;
-  background-color: transparent;
-  transition: background-color 0.1s ease;
 }
 
-/* 隣接月（グレー文字・クリック無効） */
-.day-cell.other-month {
-  color: var(--text-disabled);
-  cursor: default;
+.day--outside {
+  color: var(--color-text-disabled);
   pointer-events: none;
 }
 
-/* 通常日ホバー */
-.day-cell:not(.other-month):not(.in-range):not(.range-start):not(.range-end):not(.range-single):hover {
-  background-color: #f1f5f9;
-  border-radius: var(--radius-pill);
+.day__label {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) ease;
 }
 
-.day-inner {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+.day:focus-visible {
+  outline: none;
 }
 
-/* --------------------------------------------------------
-   帯状ハイライト（薄いパープル: #e8e7f7）
-   -------------------------------------------------------- */
-.day-cell.in-range {
-  background-color: var(--range-bg);
-  color: var(--text-main);
+.day:focus-visible .day__label {
+  outline: 3px solid var(--color-ring-soft);
+  outline-offset: -3px;
 }
 
-/* --------------------------------------------------------
-   連なった二日間の連結スタイル（画像仕様）
-   中間日がない連続2日の場合、2つが合体して1つのピルを形成
-   -------------------------------------------------------- */
-.day-cell.range-start.connected-start {
-  background: var(--range-endpoint-bg) !important;
-  border-top-left-radius: var(--radius-pill);
-  border-bottom-left-radius: var(--radius-pill);
+/* Range band: rounded where it starts or ends, and at row and month edges. */
+.day:is(.is-start, .is-between, .is-end):not(.is-connected) {
+  background-color: var(--color-fill-subtle);
+}
+
+.day:is(.is-start, .day--edge-start) {
+  border-top-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
+}
+
+.day:is(.is-end, .day--edge-end) {
+  border-top-right-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+}
+
+.day:is(.is-start, .is-end, .is-single) .day__label {
+  font-weight: 600;
+  background-color: var(--color-fill-selected);
+  box-shadow: inset 0 0 0 1px var(--stroke);
+}
+
+/* Two adjacent endpoints merge into one pill. */
+.day.is-start.is-connected .day__label {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
+  box-shadow: inset 1px 1px 0 var(--stroke), inset 0 -1px 0 var(--stroke);
 }
 
-.day-cell.range-start.connected-start .day-inner {
-  background-color: var(--range-endpoint-bg);
-  border-top-left-radius: var(--radius-pill);
-  border-bottom-left-radius: var(--radius-pill);
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  box-shadow: inset 1px 1px 0 var(--range-stroke), inset 0 -1px 0 var(--range-stroke);
-}
-
-.day-cell.range-end.connected-end,
-.day-cell.range-hover-end.connected-end {
-  background: var(--range-endpoint-bg) !important;
-  border-top-right-radius: var(--radius-pill);
-  border-bottom-right-radius: var(--radius-pill);
+.day.is-end.is-connected .day__label {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
+  box-shadow: inset -1px 1px 0 var(--stroke), inset 0 -1px 0 var(--stroke);
 }
 
-.day-cell.range-end.connected-end .day-inner,
-.day-cell.range-hover-end.connected-end .day-inner {
-  background-color: var(--range-endpoint-bg);
-  border-top-right-radius: var(--radius-pill);
-  border-bottom-right-radius: var(--radius-pill);
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  box-shadow: inset -1px 1px 0 var(--range-stroke), inset 0 -1px 0 var(--range-stroke);
+/* Hover (pointer devices only, so it doesn't stick after a tap) */
+
+@media (hover: hover) {
+  /* Layered over the opaque surface so the trigger stays solid on the page background. */
+  .picker__trigger:hover {
+    background-image: linear-gradient(var(--color-fill-subtle), var(--color-fill-subtle));
+  }
+
+  .month__nav:hover,
+  .day:not(.is-start, .is-end, .is-single):hover .day__label {
+    background-color: var(--color-fill-subtle);
+  }
+
+  .day.is-editable:hover {
+    --stroke: var(--color-stroke-selected-hover);
+  }
 }
 
-/* --------------------------------------------------------
-   開始日 / 終了日の濃い部分（#d4d4f0 + ストローク #c4c0e1）
-   すべての角（四隅）を丸め、薄い帯とシームレスに接続
-   -------------------------------------------------------- */
+/* Narrow screens: months stacked, both arrows on the top month. */
 
-/* 1. 開始日セル (.range-start) */
-.day-cell.range-start {
-  background: linear-gradient(to right, transparent 50%, var(--range-bg) 50%);
-}
+@media (max-width: 700px) {
+  body {
+    padding: 24px 16px;
+  }
 
-.day-cell.range-start .day-inner {
-  background-color: var(--range-endpoint-bg);
-  box-shadow: inset 0 0 0 1px var(--range-stroke);
-  border-radius: var(--radius-pill); /* すべての角を丸める */
-  color: var(--text-main);
-  font-weight: 600;
-  z-index: 3;
-}
+  .picker,
+  .picker__panel {
+    width: 100%;
+  }
 
-/* 2. 終了日セル (.range-end) */
-.day-cell.range-end {
-  background: linear-gradient(to left, transparent 50%, var(--range-bg) 50%);
-}
+  .picker__panel {
+    grid-template-columns: 1fr;
+    row-gap: 24px;
+    padding: 16px;
+  }
 
-.day-cell.range-end .day-inner {
-  background-color: var(--range-endpoint-bg);
-  box-shadow: inset 0 0 0 1px var(--range-stroke);
-  border-radius: var(--radius-pill); /* すべての角を丸める */
-  color: var(--text-main);
-  font-weight: 600;
-  z-index: 3;
-}
+  .month:first-child .month__nav[data-step="1"] {
+    visibility: visible;
+  }
 
-/* 3. 単一日のみ選択時 */
-.day-cell.range-single {
-  background: transparent !important;
-}
-
-.day-cell.range-single .day-inner {
-  background-color: var(--range-endpoint-bg);
-  box-shadow: inset 0 0 0 1px var(--range-stroke);
-  border-radius: var(--radius-pill); /* すべての角を丸める */
-  color: var(--text-main);
-  font-weight: 600;
-  z-index: 3;
-}
-
-/* 4. ホバー中のプレビューセル */
-.day-cell.range-hover-end {
-  background: linear-gradient(to left, transparent 50%, var(--range-bg) 50%);
-}
-
-.day-cell.range-hover-end .day-inner {
-  background-color: var(--range-endpoint-bg);
-  box-shadow: inset 0 0 0 1px var(--range-stroke);
-  border-radius: var(--radius-pill);
-  color: var(--text-main);
-  font-weight: 600;
-  z-index: 3;
-}
-
-/* --------------------------------------------------------
-   行末・行頭・月末・月初境界の角丸処理
-   行ごとに独立した角丸カプセルピルを形成
-   -------------------------------------------------------- */
-
-/* 行頭（日曜日）または月初（1日）が範囲内なら左側角丸 */
-.day-cell.in-range.col-first,
-.day-cell.in-range.month-start-boundary {
-  border-top-left-radius: var(--radius-pill);
-  border-bottom-left-radius: var(--radius-pill);
-}
-
-/* 行末（土曜日）または月末が範囲内なら右側角丸 */
-.day-cell.in-range.col-last,
-.day-cell.in-range.month-end-boundary {
-  border-top-right-radius: var(--radius-pill);
-  border-bottom-right-radius: var(--radius-pill);
-}
-
-.day-cell.editable-endpoint:hover {
-  cursor: pointer;
+  .month:last-child .month__nav {
+    display: none;
+  }
 }
