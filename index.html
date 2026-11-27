@@ -18,9 +18,18 @@
       <h2 class="settings__title">Settings</h2>
 
       <fieldset class="settings__field">
+        <legend class="settings__label">Theme</legend>
+        <div class="segmented">
+          <label><input type="radio" name="theme" value="auto" checked><span>Auto</span></label>
+          <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+          <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="settings__field">
         <legend class="settings__label">Key color</legend>
         <div class="swatches">
-          <label class="swatch" style="--swatch: #1e1e1e"><input type="radio" name="accent" value="" checked><span class="sr-only">Mono</span></label>
+          <label class="swatch" style="--swatch: var(--color-text)"><input type="radio" name="accent" value="" checked><span class="sr-only">Mono</span></label>
           <label class="swatch" style="--swatch: #2563eb"><input type="radio" name="accent" value="#2563eb"><span class="sr-only">Blue</span></label>
           <label class="swatch" style="--swatch: #7c3aed"><input type="radio" name="accent" value="#7c3aed"><span class="sr-only">Violet</span></label>
           <label class="swatch" style="--swatch: #16a34a"><input type="radio" name="accent" value="#16a34a"><span class="sr-only">Green</span></label>
@@ -33,10 +42,29 @@
         </div>
       </fieldset>
 
-      <label class="settings__field settings__field--inline">
-        <span class="settings__label">Close after selecting</span>
-        <input class="switch" type="checkbox" name="autoClose" role="switch" checked>
-      </label>
+      <fieldset class="settings__field">
+        <legend class="settings__label">Open calendar on</legend>
+        <div class="segmented">
+          <label><input type="radio" name="openOnHover" value="false" checked><span>Click</span></label>
+          <label><input type="radio" name="openOnHover" value="true"><span>Hover</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="settings__field">
+        <legend class="settings__label">When the mouse leaves</legend>
+        <div class="segmented">
+          <label><input type="radio" name="closeOnLeave" value="true"><span>Close calendar</span></label>
+          <label><input type="radio" name="closeOnLeave" value="false" checked><span>Keep open</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="settings__field">
+        <legend class="settings__label">After selecting a range</legend>
+        <div class="segmented">
+          <label><input type="radio" name="autoClose" value="true"><span>Close calendar</span></label>
+          <label><input type="radio" name="autoClose" value="false" checked><span>Keep open</span></label>
+        </div>
+      </fieldset>
 
       <fieldset class="settings__field">
         <legend class="settings__label">Months</legend>
@@ -58,6 +86,14 @@
         <span class="settings__label">Corner radius <output name="radiusValue">8px</output></span>
         <input class="slider" type="range" name="radius" min="0" max="16" value="8">
       </label>
+
+      <div class="settings__field">
+        <div class="settings__label">
+          <span>Code</span>
+          <button class="copy-button" type="button">Copy</button>
+        </div>
+        <pre class="code"><code></code></pre>
+      </div>
     </form>
   </main>
 

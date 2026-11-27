@@ -1,13 +1,14 @@
 :root {
-  --color-page: #efefef;
-  --color-surface: #ffffff;
-  --color-text: #1e1e1e;
-  --color-text-muted: #000000af;
-  --color-fill: #0000000d;
-  --color-fill-strong: #0000001f;
-  --color-border: #0000001a;
-  --color-ring-soft: #00000030;
-  --shadow-xs: 0 1px 2px #0000000d;
+  color-scheme: light dark;
+  --color-page: light-dark(#efefef, #0a0a0a);
+  --color-surface: light-dark(#ffffff, #171717);
+  --color-raised: light-dark(#ffffff, #2e2e2e);
+  --color-text: light-dark(#1e1e1e, #fafafa);
+  --color-text-muted: light-dark(#000000af, #ffffffa6);
+  --color-fill: light-dark(#0000000d, #ffffff12);
+  --color-border: light-dark(#0000001a, #ffffff1f);
+  --color-ring-soft: light-dark(#00000030, #ffffff38);
+  --shadow-xs: 0 1px 2px light-dark(#0000000d, #0000004d);
 }
 
 *,
@@ -71,12 +72,6 @@ body {
   border: none;
 }
 
-.settings__field--inline {
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .settings__label {
   display: flex;
   justify-content: space-between;
@@ -127,46 +122,6 @@ legend.settings__label {
   box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 5px var(--color-ring-soft);
 }
 
-/* Switch */
-
-.switch {
-  appearance: none;
-  position: relative;
-  flex-shrink: 0;
-  width: 36px;
-  height: 20px;
-  border-radius: 999px;
-  background-color: var(--color-fill-strong);
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.switch::before {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background-color: var(--color-surface);
-  box-shadow: var(--shadow-xs);
-  transition: transform 0.15s ease;
-}
-
-.switch:checked {
-  background-color: var(--color-text);
-}
-
-.switch:checked::before {
-  transform: translateX(16px);
-}
-
-.switch:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--color-ring-soft);
-}
-
 /* Segmented control */
 
 .segmented {
@@ -184,9 +139,11 @@ legend.settings__label {
 
 .segmented span {
   display: block;
-  padding: 5px 12px;
+  padding: 5px 8px;
   border-radius: 6px;
+  font-size: 13px;
   font-weight: 500;
+  white-space: nowrap;
   text-align: center;
   color: var(--color-text-muted);
   transition: background-color 0.15s ease, color 0.15s ease;
@@ -194,11 +151,42 @@ legend.settings__label {
 
 .segmented :checked + span {
   color: var(--color-text);
-  background-color: var(--color-surface);
+  background-color: var(--color-raised);
   box-shadow: var(--shadow-xs);
 }
 
 .segmented :focus-visible + span {
+  box-shadow: 0 0 0 3px var(--color-ring-soft);
+}
+
+/* Code output */
+
+.code {
+  padding: 10px 12px;
+  overflow-x: auto;
+  font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--color-text);
+  background-color: var(--color-fill);
+  border-radius: 8px;
+  user-select: text;
+}
+
+.copy-button {
+  padding: 0 6px;
+  font: inherit;
+  color: var(--color-text);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.copy-button:hover {
+  background-color: var(--color-fill);
+}
+
+.copy-button:focus-visible {
+  outline: none;
   box-shadow: 0 0 0 3px var(--color-ring-soft);
 }
 

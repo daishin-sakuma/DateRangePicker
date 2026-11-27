@@ -18,11 +18,11 @@ A clean, production-grade 2-month Date Range Picker UI prototype matching the ex
    - Row-level rounded bands for the range, outlined pills for the endpoints.
    - Two adjacent days merge into a single pill.
 4. **Selection & Re-editing**
-   - The range previews as the pointer moves; the second click commits and closes the dropdown.
+   - The range previews as the pointer moves; the second click commits it (and optionally closes the dropdown).
    - Clicking an endpoint re-edits it while the other end stays fixed.
    - Clicking the same endpoint again without moving away selects just that day; moving away and back cancels the edit.
    - Closing mid-selection (outside click, `Esc`, or the trigger) restores the previous range.
-5. **Customizable** — key color, auto-close, 1 or 2 months, week start, and corner radius (see [Usage](#usage)); the demo page has a settings panel to try them live.
+5. **Customizable** — light/dark theme, key color, open on hover, close on mouse leave, auto-close, 1 or 2 months, week start, and corner radius (see [Usage](#usage)); the demo page has a settings panel to try them live.
 6. **Keyboard & Accessibility**
    - `Enter` / `Space` / `↓` on the trigger opens the calendar and focuses a day.
    - Arrow keys move by day/week, `Home` / `End` to the week edges, `PageUp` / `PageDown` by month.
@@ -51,13 +51,18 @@ A clean, production-grade 2-month Date Range Picker UI prototype matching the ex
 | --- | --- | --- |
 | `range` | `{ start: null, end: null }` | Initial range |
 | `accentColor` | `null` | Any CSS color for the selection; `null` keeps it monochrome |
-| `autoClose` | `true` | Close the dropdown once a range is committed |
+| `openOnHover` | `false` | Open the dropdown when the mouse moves onto the trigger |
+| `closeOnLeave` | `false` | Close the dropdown when the mouse leaves the trigger and calendar |
+| `autoClose` | `false` | Close the dropdown once a range is committed |
 | `months` | `2` | Months shown side by side (`1` or `2`) |
 | `weekStartsOn` | `0` | `0` = Sunday, `1` = Monday |
 | `radius` | `8` | Corner radius in px |
+| `theme` | `'auto'` | `'auto'` follows the OS light/dark setting; `'light'` or `'dark'` pins it |
 | `onChange` | `() => {}` | Called with `{ start, end }` when a range is committed |
 
-The returned object exposes `open()`, `close()`, `getRange()`, and `setOptions(options)`.
+The returned object exposes `open()`, `close()`, `getRange()`, and `setOptions(options)`. `createDateRangePicker.defaults` holds the default options.
+
+The demo's settings panel shows the matching `createDateRangePicker(...)` call (non-default options only) with a **Copy** button, so a configuration tried there can be pasted straight into an app.
 
 ---
 

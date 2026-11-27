@@ -1,32 +1,36 @@
+/* Colors are written as light-dark(light, dark); the theme option pins color-scheme. */
 .picker {
+  color-scheme: light dark;
+
   /* Customizable (set by the accentColor and radius options) */
-  --accent: #000000;
+  --accent: light-dark(#000000, #ffffff);
   --radius: 8px;
 
   /* Surface & text */
-  --color-surface: #ffffff;
-  --color-text: #1e1e1e;
-  --color-text-muted: #000000af;
-  --color-text-disabled: #00000033;
+  --color-surface: light-dark(#ffffff, #171717);
+  --color-text: light-dark(#1e1e1e, #fafafa);
+  --color-text-muted: light-dark(#000000af, #ffffffa6);
+  --color-text-disabled: light-dark(#00000033, #ffffff33);
 
   /* Neutral fill & border */
-  --color-fill-subtle: #00000010;
-  --color-border: #0000001a;
+  --color-fill-subtle: light-dark(#00000010, #ffffff14);
+  --color-border: light-dark(#0000001a, #ffffff1f);
 
-  /* Selection, derived from the accent */
-  --color-range: color-mix(in srgb, var(--accent) 6%, transparent);
-  --color-selected: color-mix(in srgb, var(--accent) 12%, transparent);
-  --color-selected-hover: color-mix(in srgb, var(--accent) 18%, transparent);
-  --color-stroke-selected: color-mix(in srgb, var(--accent) 31%, transparent);
-  --color-stroke-selected-hover: color-mix(in srgb, var(--accent) 45%, transparent);
+  /* Selection, derived from the accent (stronger on dark, where tints read weaker) */
+  --color-range: light-dark(color-mix(in srgb, var(--accent) 6%, transparent), color-mix(in srgb, var(--accent) 12%, transparent));
+  --color-selected: light-dark(color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--accent) 24%, transparent));
+  --color-selected-hover: light-dark(color-mix(in srgb, var(--accent) 18%, transparent), color-mix(in srgb, var(--accent) 32%, transparent));
+  --color-stroke-selected: light-dark(color-mix(in srgb, var(--accent) 31%, transparent), color-mix(in srgb, var(--accent) 50%, transparent));
+  --color-stroke-selected-hover: light-dark(color-mix(in srgb, var(--accent) 45%, transparent), color-mix(in srgb, var(--accent) 65%, transparent));
 
   /* Focus */
-  --color-ring: #0000005e;
-  --color-ring-soft: #00000030;
+  --color-ring: light-dark(#0000005e, #ffffff66);
+  --color-ring-soft: light-dark(#00000030, #ffffff38);
 
   /* Shadow */
-  --shadow-xs: 0 1px 2px #0000000d;
-  --shadow-md: 0 4px 6px -1px #0000001a, 0 2px 4px -2px #0000001a;
+  --color-shadow: light-dark(#0000001a, #00000080);
+  --shadow-xs: 0 1px 2px light-dark(#0000000d, #0000004d);
+  --shadow-md: 0 4px 6px -1px var(--color-shadow), 0 2px 4px -2px var(--color-shadow);
 
   /* Sizes */
   --size-control: 36px;

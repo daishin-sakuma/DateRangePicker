@@ -2,21 +2,25 @@
  * Date Range Picker — calendar with range preview, endpoint re-editing and keyboard navigation.
  *
  *   const picker = createDateRangePicker(element, { accentColor: '#2563eb', months: 1 });
- *   picker.setOptions({ autoClose: false });
+ *   picker.setOptions({ autoClose: true });
  */
 const createDateRangePicker = (() => {
   const DEFAULTS = {
     range: { start: null, end: null },
-    accentColor: null, // Any CSS color for the selection; null keeps it monochrome.
-    autoClose: true,   // Close the dropdown once the second click commits a range.
-    months: 2,         // Months shown side by side: 1 or 2.
-    weekStartsOn: 0,   // 0 = Sunday, 1 = Monday.
-    radius: 8,         // Corner radius in px.
+    accentColor: null,   // Any CSS color for the selection; null keeps it monochrome.
+    autoClose: false,    // Close the dropdown once the second click commits a range.
+    openOnHover: false,  // Open the dropdown when the mouse moves onto the trigger.
+    closeOnLeave: false, // Close the dropdown when the mouse leaves the trigger and calendar.
+    months: 2,           // Months shown side by side: 1 or 2.
+    weekStartsOn: 0,     // 0 = Sunday, 1 = Monday.
+    radius: 8,           // Corner radius in px.
+    theme: 'auto',       // 'auto' follows the OS setting; 'light' or 'dark' pins it.
     onChange: () => {}
   };
 
   const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
   const AUTO_CLOSE_MS = 250;
+  const LEAVE_CLOSE_MS = 200; // Lets the mouse cross the gap between trigger and calendar.
 
   const NAV = {
     [-1]: { label: 'Previous month', points: '15 18 9 12 15 6' },
@@ -80,7 +84,7 @@ const createDateRangePicker = (() => {
   // Picker instance
   // ---------------------------------------------------------------------------
 
-  return (root, initialOptions = {}) => {
+  const create = (root, initialOptions = {}) => {
     let options = { ...DEFAULTS, ...initialOptions };
 
     const IDLE = {
@@ -101,6 +105,8 @@ const createDateRangePicker = (() => {
     };
 
     let closeTimer = null;
+    let leaveTimer = null;
+    let openedByHover = false;
 
     const trigger = h('button', 'picker__trigger', { type: 'button', ariaHasPopup: 'dialog', ariaExpanded: 'false' });
     trigger.innerHTML = `${CALENDAR_ICON}<span class="picker__value"></span>${CHEVRON_ICON}`;
@@ -234,6 +240,7 @@ const createDateRangePicker = (() => {
     };
 
     const applyAppearance = () => {
+      root.style.colorScheme = options.theme === 'auto' ? '' : options.theme;
       root.style.setProperty('--radius', `${options.radius}px`);
       if (options.accentColor) root.style.setProperty('--accent', options.accentColor);
       else root.style.removeProperty('--accent');
@@ -250,6 +257,8 @@ const createDateRangePicker = (() => {
 
     const setOpen = (isOpen) => {
       clearTimeout(closeTimer);
+      clearTimeout(leaveTimer);
+      openedByHover = false;
       state.isOpen = isOpen;
       panel.classList.toggle('is-open', isOpen);
       trigger.ariaExpanded = String(isOpen);
@@ -398,8 +407,33 @@ const createDateRangePicker = (() => {
       moveFocus(move(fromKey(day.dataset.date)));
     });
 
-    // detail === 0 means the click came from the keyboard, so focus moves into the calendar.
-    trigger.addEventListener('click', (e) => (state.isOpen ? close() : open(e.detail === 0)));
+    trigger.addEventListener('click', (e) => {
+      // The click that follows a hover-open would otherwise shut the dropdown right away.
+      if (openedByHover) {
+        openedByHover = false;
+        return;
+      }
+      // detail === 0 means the click came from the keyboard, so focus moves into the calendar.
+      if (state.isOpen) close();
+      else open(e.detail === 0);
+    });
+
+    for (const area of [trigger, panel]) {
+      area.addEventListener('pointerenter', (e) => {
+        if (e.pointerType !== 'mouse') return;
+        clearTimeout(leaveTimer);
+        if (area === trigger && options.openOnHover && !state.isOpen) {
+          open();
+          openedByHover = true;
+        }
+      });
+
+      area.addEventListener('pointerleave', (e) => {
+        if (e.pointerType !== 'mouse') return;
+        if (area === trigger) openedByHover = false;
+        if (options.closeOnLeave && state.isOpen) leaveTimer = setTimeout(close, LEAVE_CLOSE_MS);
+      });
+    }
 
     trigger.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown' && !state.isOpen) {
@@ -437,4 +471,7 @@ const createDateRangePicker = (() => {
       }
     };
   };
+
+  create.defaults = Object.freeze({ ...DEFAULTS });
+  return create;
 })();
