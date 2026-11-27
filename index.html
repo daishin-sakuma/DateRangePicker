@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Date Range Picker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="picker-container">
+    <!-- Input Trigger -->
+    <div class="input-trigger" id="input-trigger" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="true" aria-label="Select date range">
+      <span class="input-text" id="input-text">Nov 3 – Dec 10, 2026</span>
+      <div class="dropdown-chevron">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Calendar Dropdown Card -->
+    <div class="calendar-dropdown open" id="calendar-dropdown" role="dialog" aria-modal="true" aria-label="Calendar">
+      <div class="calendar-card" id="calendar-card">
+        <div class="calendar-dual-wrapper" id="calendar-dual-wrapper">
+          <!-- Rendered by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

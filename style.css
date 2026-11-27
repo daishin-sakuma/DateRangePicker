@@ -1,0 +1,355 @@
+/* ========================================================
+   Date Range Picker
+   画像デザイン完全再現・余分な要素を全排除
+   ======================================================== */
+
+:root {
+  --range-bg: #e8e7f7;              /* 薄いパープル帯 */
+  --range-endpoint-bg: #d4d4f0;     /* 濃いパープル選択セル */
+  --range-stroke: #c4c0e1;          /* うっすらアウトラインストローク */
+  --range-stroke-hover: #a5a0d6;
+  --text-main: #1e1e1e;             /* 当月の日付文字 */
+  --text-muted: #666666;            /* 曜日 */
+  --text-disabled: #cbd5e1;         /* 隣接月のグレー文字 */
+  
+  --radius-card: 16px;
+  --radius-pill: 8px;
+  --cell-height: 38px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  background-color: #c3c3c3; /* 画像の背景グレー */
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px;
+  color: var(--text-main);
+  user-select: none;
+}
+
+/* ピッカー全体のラッパー */
+.picker-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* 入力ボックストリガー（画像完全一致） */
+.input-trigger {
+  background: #ffffff;
+  border: 1.5px solid #737373;
+  border-radius: 8px;
+  padding: 7px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.15s ease;
+  margin-bottom: 12px;
+}
+
+.input-trigger:hover {
+  border-color: #444444;
+}
+
+.input-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1a1a1a;
+  letter-spacing: -0.01em;
+}
+
+.dropdown-chevron {
+  display: flex;
+  align-items: center;
+  color: #333333;
+  transition: transform 0.2s ease;
+}
+
+.input-trigger.active .dropdown-chevron {
+  transform: rotate(180deg);
+}
+
+/* ドロップダウンコンテナ */
+.calendar-dropdown {
+  position: relative;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s;
+}
+
+.calendar-dropdown.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* カレンダーカード（余計なフッター・ボタンは一切なし） */
+.calendar-card {
+  background: #ffffff;
+  border-radius: var(--radius-card);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 20px 24px 24px;
+  width: 638px;
+}
+
+/* 2ヶ月並び */
+.calendar-dual-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 36px;
+}
+
+/* 単月コンテナ */
+.month-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ヘッダー行 (< 2026年11月 / 2026年12月 >) */
+.month-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  margin-bottom: 12px;
+}
+
+.month-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: -0.01em;
+  flex: 1;
+  text-align: center;
+}
+
+.calendar-nav-btn {
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #222222;
+  transition: background-color 0.15s ease;
+}
+
+.calendar-nav-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.nav-spacer {
+  width: 32px;
+  height: 32px;
+  visibility: hidden;
+}
+
+/* 曜日ヘッダー */
+.weekdays-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.weekday-cell {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+/* 日付グリッド: 列間ギャップゼロ（シームレス結合） */
+.days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 5px;
+  column-gap: 0;
+}
+
+/* 日付セル */
+.day-cell {
+  position: relative;
+  height: var(--cell-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  background-color: transparent;
+  transition: background-color 0.1s ease;
+}
+
+/* 隣接月（グレー文字・クリック無効） */
+.day-cell.other-month {
+  color: var(--text-disabled);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* 通常日ホバー */
+.day-cell:not(.other-month):not(.in-range):not(.range-start):not(.range-end):not(.range-single):hover {
+  background-color: #f1f5f9;
+  border-radius: var(--radius-pill);
+}
+
+.day-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------
+   帯状ハイライト（薄いパープル: #e8e7f7）
+   -------------------------------------------------------- */
+.day-cell.in-range {
+  background-color: var(--range-bg);
+  color: var(--text-main);
+}
+
+/* --------------------------------------------------------
+   連なった二日間の連結スタイル（画像仕様）
+   中間日がない連続2日の場合、2つが合体して1つのピルを形成
+   -------------------------------------------------------- */
+.day-cell.range-start.connected-start {
+  background: var(--range-endpoint-bg) !important;
+  border-top-left-radius: var(--radius-pill);
+  border-bottom-left-radius: var(--radius-pill);
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.day-cell.range-start.connected-start .day-inner {
+  background-color: var(--range-endpoint-bg);
+  border-top-left-radius: var(--radius-pill);
+  border-bottom-left-radius: var(--radius-pill);
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: inset 1px 1px 0 var(--range-stroke), inset 0 -1px 0 var(--range-stroke);
+}
+
+.day-cell.range-end.connected-end,
+.day-cell.range-hover-end.connected-end {
+  background: var(--range-endpoint-bg) !important;
+  border-top-right-radius: var(--radius-pill);
+  border-bottom-right-radius: var(--radius-pill);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.day-cell.range-end.connected-end .day-inner,
+.day-cell.range-hover-end.connected-end .day-inner {
+  background-color: var(--range-endpoint-bg);
+  border-top-right-radius: var(--radius-pill);
+  border-bottom-right-radius: var(--radius-pill);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  box-shadow: inset -1px 1px 0 var(--range-stroke), inset 0 -1px 0 var(--range-stroke);
+}
+
+/* --------------------------------------------------------
+   開始日 / 終了日の濃い部分（#d4d4f0 + ストローク #c4c0e1）
+   すべての角（四隅）を丸め、薄い帯とシームレスに接続
+   -------------------------------------------------------- */
+
+/* 1. 開始日セル (.range-start) */
+.day-cell.range-start {
+  background: linear-gradient(to right, transparent 50%, var(--range-bg) 50%);
+}
+
+.day-cell.range-start .day-inner {
+  background-color: var(--range-endpoint-bg);
+  box-shadow: inset 0 0 0 1px var(--range-stroke);
+  border-radius: var(--radius-pill); /* すべての角を丸める */
+  color: var(--text-main);
+  font-weight: 600;
+  z-index: 3;
+}
+
+/* 2. 終了日セル (.range-end) */
+.day-cell.range-end {
+  background: linear-gradient(to left, transparent 50%, var(--range-bg) 50%);
+}
+
+.day-cell.range-end .day-inner {
+  background-color: var(--range-endpoint-bg);
+  box-shadow: inset 0 0 0 1px var(--range-stroke);
+  border-radius: var(--radius-pill); /* すべての角を丸める */
+  color: var(--text-main);
+  font-weight: 600;
+  z-index: 3;
+}
+
+/* 3. 単一日のみ選択時 */
+.day-cell.range-single {
+  background: transparent !important;
+}
+
+.day-cell.range-single .day-inner {
+  background-color: var(--range-endpoint-bg);
+  box-shadow: inset 0 0 0 1px var(--range-stroke);
+  border-radius: var(--radius-pill); /* すべての角を丸める */
+  color: var(--text-main);
+  font-weight: 600;
+  z-index: 3;
+}
+
+/* 4. ホバー中のプレビューセル */
+.day-cell.range-hover-end {
+  background: linear-gradient(to left, transparent 50%, var(--range-bg) 50%);
+}
+
+.day-cell.range-hover-end .day-inner {
+  background-color: var(--range-endpoint-bg);
+  box-shadow: inset 0 0 0 1px var(--range-stroke);
+  border-radius: var(--radius-pill);
+  color: var(--text-main);
+  font-weight: 600;
+  z-index: 3;
+}
+
+/* --------------------------------------------------------
+   行末・行頭・月末・月初境界の角丸処理
+   行ごとに独立した角丸カプセルピルを形成
+   -------------------------------------------------------- */
+
+/* 行頭（日曜日）または月初（1日）が範囲内なら左側角丸 */
+.day-cell.in-range.col-first,
+.day-cell.in-range.month-start-boundary {
+  border-top-left-radius: var(--radius-pill);
+  border-bottom-left-radius: var(--radius-pill);
+}
+
+/* 行末（土曜日）または月末が範囲内なら右側角丸 */
+.day-cell.in-range.col-last,
+.day-cell.in-range.month-end-boundary {
+  border-top-right-radius: var(--radius-pill);
+  border-bottom-right-radius: var(--radius-pill);
+}
+
+.day-cell.editable-endpoint:hover {
+  cursor: pointer;
+}
