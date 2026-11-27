@@ -372,9 +372,11 @@
     }
   });
 
+  // Checks the trigger and panel, not .picker, whose box also covers the empty space beside the trigger.
   // composedPath() still contains nodes that a re-render removed during this click.
   document.addEventListener('click', (e) => {
-    if (state.isOpen && !e.composedPath().includes(picker)) close();
+    const path = e.composedPath();
+    if (state.isOpen && !path.includes(trigger) && !path.includes(panel)) close();
   });
 
   document.addEventListener('keydown', (e) => {

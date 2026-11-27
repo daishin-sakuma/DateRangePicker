@@ -11,6 +11,7 @@
   /* Fill */
   --color-fill-subtle: #00000010;
   --color-fill-selected: #0000001f;
+  --color-fill-selected-hover: #0000002d;
 
   /* Border */
   --color-border: #0000001a;
@@ -52,7 +53,7 @@ body {
   align-items: flex-start;
   min-height: 100vh;
   padding: 40px 20px;
-  font-family: Figtree, League Spartan, Geologica, Sen, Public Sans, sans-serif;
+  font-family: Figtree, sans-serif;
   color: var(--color-text);
   background-color: var(--color-page);
   user-select: none;
@@ -123,6 +124,7 @@ button {
   column-gap: 36px;
   width: 624px;
   padding: 16px;
+  padding-top: 8px;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -275,6 +277,10 @@ button {
   .month__nav:hover,
   .day:not(.is-start, .is-end, .is-single):hover .day__label {
     background-color: var(--color-fill-subtle);
+  }
+
+  .day:is(.is-start, .is-end, .is-single):hover .day__label {
+    background-color: var(--color-fill-selected-hover);
   }
 
   .day.is-editable:hover {
