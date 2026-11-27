@@ -28,6 +28,55 @@ body {
   background-color: var(--color-page);
 }
 
+/* Sized to the demo row so the header lines up with the picker and settings. */
+.page {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-header__title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.page-header__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-right: -10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.page-header__link:hover {
+  color: var(--color-text);
+  background-color: var(--color-fill);
+}
+
+.page-header__link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-ring-soft);
+}
+
+.page-header__link svg {
+  width: 16px;
+  height: 16px;
+}
+
 .demo {
   display: flex;
   flex-wrap: wrap;
