@@ -2,6 +2,10 @@
 
 A clean, production-grade 2-month Date Range Picker UI prototype matching the exact Figma specifications.
 
+🔗 **Live Demo:** [https://daishin-sakuma.github.io/DateRangePicker/](https://daishin-sakuma.github.io/DateRangePicker/)
+
+---
+
 ## Key Features
 
 1. **Dual Month Continuous Display**:
@@ -24,9 +28,11 @@ A clean, production-grade 2-month Date Range Picker UI prototype matching the ex
 5. **Auto-close on Second Click**:
    - Confirms selection and automatically collapses the dropdown on the second click.
 
-## How to Run
+---
 
-Open directly in your default browser:
+## How to Run Locally
+
+Open directly in your browser:
 ```bash
 open index.html
 ```
