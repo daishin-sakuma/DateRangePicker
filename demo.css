@@ -1,0 +1,221 @@
+:root {
+  --color-page: #efefef;
+  --color-surface: #ffffff;
+  --color-text: #1e1e1e;
+  --color-text-muted: #000000af;
+  --color-fill: #0000000d;
+  --color-fill-strong: #0000001f;
+  --color-border: #0000001a;
+  --color-ring-soft: #00000030;
+  --shadow-xs: 0 1px 2px #0000000d;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  padding: 40px 20px;
+  font-family: Figtree, sans-serif;
+  color: var(--color-text);
+  background-color: var(--color-page);
+}
+
+.demo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Settings card */
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 280px;
+  padding: 20px;
+  font-size: 14px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-xs);
+}
+
+.settings__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.settings__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-inline-size: 0;
+  border: none;
+}
+
+.settings__field--inline {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings__label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+/* A legend is not a flex item, so it doesn't get the field's gap. */
+legend.settings__label {
+  padding-bottom: 8px;
+}
+
+/* Inputs are visually hidden inside their custom controls but stay focusable. */
+.swatch input,
+.segmented input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Color swatches */
+
+.swatches {
+  display: flex;
+  gap: 8px;
+}
+
+.swatch {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--swatch);
+  transition: box-shadow 0.15s ease;
+}
+
+.swatch--custom {
+  background: conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444);
+}
+
+.swatch:has(:checked) {
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-text);
+}
+
+.swatch:has(:focus-visible) {
+  box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 5px var(--color-ring-soft);
+}
+
+/* Switch */
+
+.switch {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background-color: var(--color-fill-strong);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+  transition: transform 0.15s ease;
+}
+
+.switch:checked {
+  background-color: var(--color-text);
+}
+
+.switch:checked::before {
+  transform: translateX(16px);
+}
+
+.switch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-ring-soft);
+}
+
+/* Segmented control */
+
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 3px;
+  border-radius: 8px;
+  background-color: var(--color-fill);
+}
+
+.segmented label {
+  position: relative;
+}
+
+.segmented span {
+  display: block;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--color-text-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.segmented :checked + span {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.segmented :focus-visible + span {
+  box-shadow: 0 0 0 3px var(--color-ring-soft);
+}
+
+/* Slider */
+
+.slider {
+  width: 100%;
+  accent-color: var(--color-text);
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  body {
+    padding: 24px 16px;
+  }
+
+  .settings {
+    width: 100%;
+  }
+}

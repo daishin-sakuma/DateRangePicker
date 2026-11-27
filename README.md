@@ -22,10 +22,42 @@ A clean, production-grade 2-month Date Range Picker UI prototype matching the ex
    - Clicking an endpoint re-edits it while the other end stays fixed.
    - Clicking the same endpoint again without moving away selects just that day; moving away and back cancels the edit.
    - Closing mid-selection (outside click, `Esc`, or the trigger) restores the previous range.
-5. **Keyboard & Accessibility**
+5. **Customizable** — key color, auto-close, 1 or 2 months, week start, and corner radius (see [Usage](#usage)); the demo page has a settings panel to try them live.
+6. **Keyboard & Accessibility**
    - `Enter` / `Space` / `↓` on the trigger opens the calendar and focuses a day.
    - Arrow keys move by day/week, `Home` / `End` to the week edges, `PageUp` / `PageDown` by month.
    - `Esc` closes and returns focus to the trigger. Selected days expose `aria-pressed`.
+
+---
+
+## Usage
+
+```html
+<link rel="stylesheet" href="date-range-picker.css">
+<div id="picker"></div>
+<script src="date-range-picker.js"></script>
+<script>
+  const picker = createDateRangePicker(document.getElementById('picker'), {
+    range: { start: new Date(2026, 10, 3), end: new Date(2026, 11, 10) },
+    accentColor: '#2563eb',
+    onChange: (range) => console.log(range)
+  });
+
+  picker.setOptions({ months: 1, weekStartsOn: 1 });
+</script>
+```
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `range` | `{ start: null, end: null }` | Initial range |
+| `accentColor` | `null` | Any CSS color for the selection; `null` keeps it monochrome |
+| `autoClose` | `true` | Close the dropdown once a range is committed |
+| `months` | `2` | Months shown side by side (`1` or `2`) |
+| `weekStartsOn` | `0` | `0` = Sunday, `1` = Monday |
+| `radius` | `8` | Corner radius in px |
+| `onChange` | `() => {}` | Called with `{ start, end }` when a range is committed |
+
+The returned object exposes `open()`, `close()`, `getRange()`, and `setOptions(options)`.
 
 ---
 
@@ -33,9 +65,9 @@ A clean, production-grade 2-month Date Range Picker UI prototype matching the ex
 
 | File | Role |
 | --- | --- |
-| `index.html` | Trigger button and empty panel |
-| `script.js` | State, rendering, and interactions (no dependencies) |
-| `style.css` | Design tokens on `:root`, BEM-style classes (`.picker__*`, `.month__*`, `.day`) with `is-*` states |
+| `date-range-picker.js` | The component: state, rendering, and interactions (no dependencies) |
+| `date-range-picker.css` | Component styles; tokens are scoped to `.picker`, selection colors derive from `--accent` |
+| `index.html`, `demo.js`, `demo.css` | Demo page with a settings panel driving `setOptions()` |
 
 ---
 

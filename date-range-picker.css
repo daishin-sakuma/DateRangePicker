@@ -1,22 +1,24 @@
-:root {
-  /* Surface */
-  --color-page: #efefef;
-  --color-surface: #ffffff;
+.picker {
+  /* Customizable (set by the accentColor and radius options) */
+  --accent: #000000;
+  --radius: 8px;
 
-  /* Text */
+  /* Surface & text */
+  --color-surface: #ffffff;
   --color-text: #1e1e1e;
   --color-text-muted: #000000af;
   --color-text-disabled: #00000033;
 
-  /* Fill */
+  /* Neutral fill & border */
   --color-fill-subtle: #00000010;
-  --color-fill-selected: #0000001f;
-  --color-fill-selected-hover: #0000002d;
-
-  /* Border */
   --color-border: #0000001a;
-  --color-stroke-selected: #0000004f;
-  --color-stroke-selected-hover: #00000073;
+
+  /* Selection, derived from the accent */
+  --color-range: color-mix(in srgb, var(--accent) 6%, transparent);
+  --color-selected: color-mix(in srgb, var(--accent) 12%, transparent);
+  --color-selected-hover: color-mix(in srgb, var(--accent) 18%, transparent);
+  --color-stroke-selected: color-mix(in srgb, var(--accent) 31%, transparent);
+  --color-stroke-selected-hover: color-mix(in srgb, var(--accent) 45%, transparent);
 
   /* Focus */
   --color-ring: #0000005e;
@@ -27,7 +29,6 @@
   --shadow-md: 0 4px 6px -1px #0000001a, 0 2px 4px -2px #0000001a;
 
   /* Sizes */
-  --radius-md: 8px;
   --size-control: 36px;
   --size-cell: 40px;
   --size-nav: 32px;
@@ -37,29 +38,23 @@
   --duration-fast: 0.15s;
   --duration-base: 0.2s;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  color: var(--color-text);
+  user-select: none;
 }
 
-*,
-*::before,
-*::after {
+/* Resets use :where() so they never outweigh the component's own rules. */
+:where(.picker, .picker *, .picker *::before, .picker *::after) {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-body {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-  padding: 40px 20px;
-  font-family: Figtree, sans-serif;
-  color: var(--color-text);
-  background-color: var(--color-page);
-  user-select: none;
-}
-
-button {
+:where(.picker) button {
   font: inherit;
   color: inherit;
   background: none;
@@ -67,16 +62,8 @@ button {
   cursor: pointer;
 }
 
-/* Picker */
+/* Trigger (shadcn/ui outline button) */
 
-.picker {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-/* Outline button (shadcn/ui style) */
 .picker__trigger {
   display: inline-flex;
   align-items: center;
@@ -87,7 +74,7 @@ button {
   font-size: 14px;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   box-shadow: var(--shadow-xs);
   transition:
     background-color var(--duration-fast) ease,
@@ -118,16 +105,16 @@ button {
   transform: rotate(180deg);
 }
 
+/* Panel */
+
 .picker__panel {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-auto-flow: column;
   column-gap: 36px;
-  width: 624px;
-  padding: 16px;
-  padding-top: 8px;
+  padding: 8px 16px 16px;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   box-shadow: var(--shadow-md);
   opacity: 0;
   visibility: hidden;
@@ -168,20 +155,20 @@ button {
   place-items: center;
   width: var(--size-nav);
   height: var(--size-nav);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   transition: background-color var(--duration-fast) ease;
 }
 
-/* Side by side, "<" belongs to the left month and ">" to the right one. */
-.month:first-child .month__nav[data-step="1"],
-.month:last-child .month__nav[data-step="-1"] {
+/* Side by side, "<" belongs to the first month and ">" to the last one. */
+.month:not(:last-child) .month__nav[data-step="1"],
+.month:not(:first-child) .month__nav[data-step="-1"] {
   visibility: hidden;
 }
 
 .month__weekdays,
 .month__days {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, var(--size-cell));
 }
 
 .month__weekdays {
@@ -219,7 +206,7 @@ button {
   flex: 1;
   display: grid;
   place-items: center;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius);
   transition: background-color var(--duration-fast) ease;
 }
 
@@ -234,22 +221,22 @@ button {
 
 /* Range band: rounded where it starts or ends, and at row and month edges. */
 .day:is(.is-start, .is-between, .is-end):not(.is-connected) {
-  background-color: var(--color-fill-subtle);
+  background-color: var(--color-range);
 }
 
 .day:is(.is-start, .day--edge-start) {
-  border-top-left-radius: var(--radius-md);
-  border-bottom-left-radius: var(--radius-md);
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
 }
 
 .day:is(.is-end, .day--edge-end) {
-  border-top-right-radius: var(--radius-md);
-  border-bottom-right-radius: var(--radius-md);
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
 }
 
 .day:is(.is-start, .is-end, .is-single) .day__label {
   font-weight: 600;
-  background-color: var(--color-fill-selected);
+  background-color: var(--color-selected);
   box-shadow: inset 0 0 0 1px var(--stroke);
 }
 
@@ -269,7 +256,7 @@ button {
 /* Hover (pointer devices only, so it doesn't stick after a tap) */
 
 @media (hover: hover) {
-  /* Layered over the opaque surface so the trigger stays solid on the page background. */
+  /* Layered over the opaque surface so the trigger stays solid on any page background. */
   .picker__trigger:hover {
     background-image: linear-gradient(var(--color-fill-subtle), var(--color-fill-subtle));
   }
@@ -280,7 +267,7 @@ button {
   }
 
   .day:is(.is-start, .is-end, .is-single):hover .day__label {
-    background-color: var(--color-fill-selected-hover);
+    background-color: var(--color-selected-hover);
   }
 
   .day.is-editable:hover {
@@ -288,29 +275,29 @@ button {
   }
 }
 
-/* Narrow screens: months stacked, both arrows on the top month. */
+/* Narrow screens: months stacked, both arrows on the first month. */
 
 @media (max-width: 700px) {
-  body {
-    padding: 24px 16px;
-  }
-
   .picker,
   .picker__panel {
     width: 100%;
   }
 
   .picker__panel {
-    grid-template-columns: 1fr;
+    grid-auto-flow: row;
     row-gap: 24px;
-    padding: 16px;
+  }
+
+  .month__weekdays,
+  .month__days {
+    grid-template-columns: repeat(7, 1fr);
   }
 
   .month:first-child .month__nav[data-step="1"] {
     visibility: visible;
   }
 
-  .month:last-child .month__nav {
+  .month:not(:first-child) .month__nav {
     display: none;
   }
 }

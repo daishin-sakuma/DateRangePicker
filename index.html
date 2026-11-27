@@ -7,25 +7,61 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@300..900&display=swap">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="date-range-picker.css">
+  <link rel="stylesheet" href="demo.css">
 </head>
 <body>
-  <div class="picker">
-    <button class="picker__trigger" type="button" aria-haspopup="dialog" aria-expanded="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M8 2v4M16 2v4"></path>
-        <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-        <path d="M3 10h18"></path>
-      </svg>
-      <span class="picker__value">Nov 3 – Dec 10, 2026</span>
-      <svg class="picker__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="m6 9 6 6 6-6"></path>
-      </svg>
-    </button>
+  <main class="demo">
+    <div id="picker"></div>
 
-    <div class="picker__panel is-open" role="dialog" aria-label="Calendar"></div>
-  </div>
+    <form class="settings" aria-label="Picker settings">
+      <h2 class="settings__title">Settings</h2>
 
-  <script src="script.js"></script>
+      <fieldset class="settings__field">
+        <legend class="settings__label">Key color</legend>
+        <div class="swatches">
+          <label class="swatch" style="--swatch: #1e1e1e"><input type="radio" name="accent" value="" checked><span class="sr-only">Mono</span></label>
+          <label class="swatch" style="--swatch: #2563eb"><input type="radio" name="accent" value="#2563eb"><span class="sr-only">Blue</span></label>
+          <label class="swatch" style="--swatch: #7c3aed"><input type="radio" name="accent" value="#7c3aed"><span class="sr-only">Violet</span></label>
+          <label class="swatch" style="--swatch: #16a34a"><input type="radio" name="accent" value="#16a34a"><span class="sr-only">Green</span></label>
+          <label class="swatch" style="--swatch: #ea580c"><input type="radio" name="accent" value="#ea580c"><span class="sr-only">Orange</span></label>
+          <label class="swatch" style="--swatch: #e11d48"><input type="radio" name="accent" value="#e11d48"><span class="sr-only">Rose</span></label>
+          <label class="swatch swatch--custom">
+            <input type="radio" name="accent" value="custom"><span class="sr-only">Custom</span>
+            <input type="color" name="customColor" value="#0891b2" aria-label="Custom color">
+          </label>
+        </div>
+      </fieldset>
+
+      <label class="settings__field settings__field--inline">
+        <span class="settings__label">Close after selecting</span>
+        <input class="switch" type="checkbox" name="autoClose" role="switch" checked>
+      </label>
+
+      <fieldset class="settings__field">
+        <legend class="settings__label">Months</legend>
+        <div class="segmented">
+          <label><input type="radio" name="months" value="1"><span>1</span></label>
+          <label><input type="radio" name="months" value="2" checked><span>2</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="settings__field">
+        <legend class="settings__label">Week starts on</legend>
+        <div class="segmented">
+          <label><input type="radio" name="weekStartsOn" value="0" checked><span>Sunday</span></label>
+          <label><input type="radio" name="weekStartsOn" value="1"><span>Monday</span></label>
+        </div>
+      </fieldset>
+
+      <label class="settings__field">
+        <span class="settings__label">Corner radius <output name="radiusValue">8px</output></span>
+        <input class="slider" type="range" name="radius" min="0" max="16" value="8">
+      </label>
+    </form>
+  </main>
+
+  <script src="date-range-picker.js"></script>
+  <script src="demo.js"></script>
 </body>
 </html>
